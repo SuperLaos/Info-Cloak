@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>使用帮助 · 通用数据脱敏工具 v2</title>
+<style>
+  :root{--bg:#f5f7fa;--panel:#fff;--ink:#1f2329;--muted:#6b7280;--line:#e3e8ef;--brand:#2563eb;--brand2:#1d4ed8;--warn:#b91c1c;--ok:#15803d;--chip:#eef2ff;--th-bg:#f1f5f9;--code-bg:#eef2ff;--hd-bg:#fff;--toc-bg:#fff}
+  [data-theme="dark"]{--bg:#0f1115;--panel:#171a21;--ink:#e6e8eb;--muted:#9aa4b2;--line:#2a2f3a;--brand:#3b82f6;--brand2:#60a5fa;--warn:#f87171;--ok:#4ade80;--chip:#1e293b;--th-bg:#1f2530;--code-bg:#1e293b;--hd-bg:#171a21;--toc-bg:#171a21}
+  [data-theme="light"]{--bg:#f5f7fa;--panel:#fff;--ink:#1f2329;--muted:#6b7280;--line:#e3e8ef;--brand:#2563eb;--brand2:#1d4ed8;--warn:#b91c1c;--ok:#15803d;--chip:#eef2ff;--th-bg:#f1f5f9;--code-bg:#eef2ff;--hd-bg:#fff;--toc-bg:#fff}
+  @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0f1115;--panel:#171a21;--ink:#e6e8eb;--muted:#9aa4b2;--line:#2a2f3a;--brand:#3b82f6;--brand2:#60a5fa;--warn:#f87171;--ok:#4ade80;--chip:#1e293b;--th-bg:#1f2530;--code-bg:#1e293b;--hd-bg:#171a21;--toc-bg:#171a21}}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.7}
+  .hd{background:var(--hd-bg);border-bottom:1px solid var(--line);padding:18px 0}
+  .hd .in{max-width:900px;margin:0 auto;padding:0 18px}
+  .hd h1{margin:0;font-size:21px}
+  .hd p{margin:6px 0 0;color:var(--muted);font-size:13px}
+  .wrap{max-width:900px;margin:22px auto;padding:0 18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin-bottom:18px}
+  .card h2{margin:0 0 12px;font-size:18px;border-left:4px solid var(--brand);padding-left:10px}
+  .card h3{margin:18px 0 8px;font-size:15px;color:var(--brand2)}
+  .step{display:flex;gap:10px;align-items:flex-start;margin:8px 0}
+  .step .n{flex:0 0 26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+  .note{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:8px;padding:10px 12px;font-size:13px;margin:10px 0}
+  .ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:8px;padding:10px 12px;font-size:13px;margin:10px 0}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--th-bg)}
+  code{background:var(--code-bg);padding:1px 6px;border-radius:4px;font-size:12px}
+  .pill{display:inline-block;background:var(--chip);color:var(--brand2);border-radius:999px;padding:2px 10px;font-size:12px;margin:2px}
+  .toc{background:var(--toc-bg);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin-bottom:18px;font-size:14px}
+  .toc a{color:var(--brand2);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  ul{margin:6px 0;padding-left:22px}
+  footer{margin:30px auto;max-width:900px;padding:16px 18px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
+  b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="hd"><div class="in">
+  <h1>使用帮助 · 通用数据脱敏工具 v2</h1>
+  <p>原创作者：SuperLaos ｜ 公众号：技术宅SuperLaos ｜ 许可：MIT ｜ 全程纯前端离线，数据不出本机</p>
+</div></div>
+
+<div class="wrap">
+<div class="toc">
+  <b>目录</b>　
+  <a href="#s0">0 简介</a> · <a href="#s1">1 界面布局</a> · <a href="#s2">2 快速开始</a> · <a href="#s3">3 表格脱敏</a> · <a href="#s4">4 文档脱敏</a> · <a href="#s5">5 还原</a> · <a href="#s5b">5.1 多表 Word 还原案例</a> · <a href="#s6">6 全局字典</a> · <a href="#s7">7 13类识别</a> · <a href="#s8">8 可逆性对照</a> · <a href="#s9">9 安全合规</a> · <a href="#s10">10 常见问题</a>
+</div>
+
+<div class="card" id="s0"><h2>0. 工具简介</h2>
+<p>本工具是一个<strong>单文件、纯前端、离线可用</strong>的数据脱敏与还原工具。无需联网、无需上传服务器，所有计算都在你本机浏览器内完成。适用于在向第三方、合作方、公开渠道分享数据前，对个人隐私与商业敏感信息进行脱敏处理，并在授权范围内还原。</p>
+<p>覆盖格式：<span class="pill">Excel / CSV</span><span class="pill">Word</span><span class="pill">PowerPoint</span><span class="pill">PDF</span><span class="pill">图片</span><span class="pill">ZIP（含嵌套）</span>。其中<strong>结构化文本格式（表格、Word、PPT、ZIP 内文档）支持脱敏 + 还原</strong>；<strong>PDF / 图片支持两种模式</strong>：「遮挡式（不可逆）」保留原格式打码，或「转为 Word 脱敏（可逆）」提取文本令牌化后生成可还原的 Word。</p>
+<div class="note">⚠ 主字典（含全部明文映射）是最高敏感资产，务必本地独掌，<b style="color:var(--warn)">严禁随脱敏文件外发</b>。</div>
+</div>
+
+<div class="card" id="s1"><h2>1. 界面布局</h2>
+<p>工具采用<strong>左右分栏</strong>布局：</p>
+<ul>
+  <li><b>左侧菜单</b>：① 表格脱敏、② 文档脱敏、③ 还原（统一）、④ 全局字典，以及文档入口「使用帮助」「技术文档」。</li>
+  <li><b>右侧工作区</b>：随选中的菜单切换显示对应功能面板。</li>
+</ul>
+<p>点击左侧任意菜单即可切换；当前所在功能以蓝色高亮标识。</p>
+</div>
+
+<div class="card" id="s2"><h2>2. 快速开始（第一次使用）</h2>
+<div class="step"><div class="n">1</div><div>用 <b>Chrome / Edge</b> 浏览器打开 <code>通用脱敏工具v2.html</code>（双击文件即可）。</div></div>
+<div class="step"><div class="n">2</div><div>左侧选择「① 表格脱敏」或「② 文档脱敏」，上传你的文件。</div></div>
+<div class="step"><div class="n">3</div><div>选择每列 / 每类敏感信息的脱敏方法，点击生成。</div></div>
+<div class="step"><div class="n">4</div><div>下载脱敏后文件；如需还原，到「③ 还原」上传脱敏文件 + 主字典。</div></div>
+<div class="ok">✓ 全部过程文件均<strong>只保存在你本机</strong>，不会上传任何服务器。</div>
+</div>
+
+<div class="card" id="s3"><h2>3. ① 表格脱敏（Excel / CSV）</h2>
+<h3>操作步骤</h3>
+<div class="step"><div class="n">1</div><div>点击「上传 Excel / CSV」，选择文件。工具自动读取首个工作表，第一行为表头，空行自动忽略。</div></div>
+<div class="step"><div class="n">2</div><div>在「配置每列脱敏方法」表格中，为每一列选择方法（见下方方法说明）。可设置<strong>掩码保留首尾位数</strong>与<strong>加密口令</strong>。</div></div>
+<div class="step"><div class="n">3</div><div>点击「生成脱敏四件套」，工具自动生成并下载：脱敏后文件、编码字典.json、脱敏方案.md、还原方案.md，同时把映射累计进<strong>全局字典</strong>。</div></div>
+<div class="step"><div class="n">4</div><div>在「预览」区查看前 15 行脱敏效果，可单独下载四类产物。</div></div>
+<h3>列方法说明</h3>
+<table>
+  <tr><th>方法</th><th>说明</th><th>可逆</th></tr>
+  <tr><td>保留</td><td>不处理</td><td>—</td></tr>
+  <tr><td>令牌化</td><td>替换为形如 <code>K1-0001</code> 的占位符，映射进字典</td><td>✅</td></tr>
+  <tr><td>掩码</td><td>首尾保留若干位，中间用 * 遮盖</td><td>❌</td></tr>
+  <tr><td>哈希</td><td>SHA-256 摘要，不可逆</td><td>❌</td></tr>
+  <tr><td>泛化</td><td>数字归并区间、日期归并到年等</td><td>❌</td></tr>
+  <tr><td>加密 AES</td><td>PBKDF2+AES-GCM，需口令</td><td>✅</td></tr>
+  <tr><td>随机洗牌</td><td>列内值打乱重排（按值映射可还原）</td><td>✅</td></tr>
+  <tr><td>数值取整·不可逆</td><td>按指定精度取整后丢弃余数</td><td>❌</td></tr>
+  <tr><td>数值取整·可逆</td><td>取整值 + 加密余数随行带入，需口令</td><td>✅</td></tr>
+  <tr><td>删除列</td><td>整列移除</td><td>❌</td></tr>
+</table>
+<div class="note">⚠ 选「加密 AES」或「数值取整·可逆」时必须填写<strong>加密口令</strong>；口令本地独掌，不写入字典。</div>
+</div>
+
+<div class="card" id="s4"><h2>4. ② 文档脱敏（Word / PPT / 表格 / PDF / 图片 / ZIP）</h2>
+<h3>Word / PPT / Excel / CSV</h3>
+<ul>
+  <li>上传后工具<strong>自动解析文本</strong>并跑 13 类敏感识别，列出每类命中样例。</li>
+  <li>对每类勾选「是否脱敏」并选择方法（默认：可还原类→令牌化，手机/地址→掩码）。</li>
+  <li>点击「生成脱敏文档」，输出新文件，命中值替换进全局字典。</li>
+</ul>
+<h3>ZIP（含嵌套）</h3>
+<ul>
+  <li>上传 ZIP 后自动<strong>递归</strong>处理内部所有支持的文件（包括 ZIP 内的 ZIP）。</li>
+  <li>Word/PPT/表格按内容脱敏后重打包；PDF/图片按遮挡式处理。</li>
+</ul>
+<h3>PDF / 图片（两种模式）</h3>
+<ul>
+  <li><b>转为 Word 脱敏（可逆 · 推荐）</b>：PDF 用 pdf.js 抽取文本（含表单字段），图片用 tesseract.js OCR，自动令牌化全部敏感项后生成 <code>.docx</code>。因是结构化文档脱敏，可凭主字典还原。</li>
+  <li><b>遮挡式（不可逆）</b>：PDF 用 pdf.js 对敏感文本画黑色矩形，图片用 OCR 定位后打码，保留原格式但像素/版面信息丢失，无法还原。</li>
+  <li>两类引擎（pdf.js、tesseract.js 及中文/英文训练数据）已<strong>本地化</strong>于 <code>libs/</code> 目录，可彻底离线。</li>
+</ul>
+<h3>批量处理（文件夹 / 多文件）</h3>
+<ul>
+  <li>在「② 文档脱敏」页底部，把整个文件夹或多个文件拖入拖拽区（支持嵌套），或点击「选择文件夹 / 选择多个文件」。</li>
+  <li>系统按默认策略自动脱敏（结构化文本令牌化/掩码，PDF/图片转为 Word 令牌化），结果打包为 <code>批量脱敏结果.zip</code>，并累计进全局字典；处理过程有进度条与逐文件日志。</li>
+</ul>
+<div class="note">⚠ 人员姓名识别较宽松（仅识别带称谓/姓名标记者），默认「保留」，请人工确认是否脱敏。</div>
+</div>
+
+<div class="card" id="s5"><h2>5. ③ 还原（统一）</h2>
+<div class="step"><div class="n">1</div><div>上传<strong>脱敏文件</strong>（docx/pptx/xlsx/csv）。</div></div>
+<div class="step"><div class="n">2</div><div>上传对应的<strong>主字典 .json</strong>（即「④ 全局字典」下载的，或脱敏四件套里的编码字典）。</div></div>
+<div class="step"><div class="n">3</div><div>若含加密列/令牌，填写<strong>加密口令</strong>。</div></div>
+<div class="step"><div class="n">4</div><div>点击「还原为明文」，预览并下载《含明文》版本。</div></div>
+<div class="ok">✓ 令牌化 / 加密 / 洗牌 / 可逆取整均可还原；掩码 / 哈希 / 泛化 / 删除 / 遮挡式不可还原。</div>
+</div>
+
+<div class="card" id="s5b"><h2>5.1 实战案例：多表脱敏 Word 的还原</h2>
+<p>场景：你有三张原始表 → 分别脱敏生成三张 Excel + 三份编码字典 → 用外部工具合并生成一版 Word 文档（含脱敏数据）→ 需要还原回明文。</p>
+<h3>你需要准备</h3>
+<table>
+  <tr><th>文件</th><th>从哪来</th><th>作用</th></tr>
+  <tr><td>脱敏 Word（.docx）</td><td>外部工具从三张脱敏表生成</td><td>包含令牌的待还原文档</td></tr>
+  <tr><td>主字典 .json</td><td>三张表各自的编码字典.json 合并后下载</td><td>令牌 → 明文的映射表</td></tr>
+  <tr><td>口令（可选）</td><td>脱敏时用了「加密 AES」或「数值取整·可逆」才需要</td><td>解密用</td></tr>
+</table>
+<h3>第一步：合并字典</h3>
+<div class="step"><div class="n">1</div><div>进「④ 全局字典」，逐个「导入 主字典.json（合并）」三张表的 <code>编码字典.json</code>。</div></div>
+<div class="step"><div class="n">2</div><div>导入完成后点「下载 主字典.json」。若用了加密列，填口令后下载「下载 加密主字典.json」。</div></div>
+<h3>第二步：还原 Word</h3>
+<div class="step"><div class="n">1</div><div>进「③ 还原（统一）」，上传脱敏 Word + 主字典 .json。</div></div>
+<div class="step"><div class="n">2</div><div>若含加密列/令牌，填写加密口令。</div></div>
+<div class="step"><div class="n">3</div><div>点「还原为明文」→ 下载「下载 还原版」得到 <code>_含明文.docx</code>。</div></div>
+<div class="ok">✓ 还原是文本替换：工具解析 Word 的 Open XML，把每个令牌（如 K1-0001）在字典中查回明文填入。掩码/哈希/泛化等不可逆方法不进入字典，Word 中保持原样。</div>
+<div class="note">⚠ 外部工具若对文本做了二次处理（加前缀、截断、换行拼接），令牌可能被破坏导致还原失败或部分失败。还原后请预览核对。</div>
+</div>
+
+<div class="card" id="s6"><h2>6. ④ 全局字典（跨文件同值同码）</h2>
+<ul>
+  <li><b>同值同码</b>：同一明文字符串，无论在哪个文件、哪列、哪类，都映射为<strong>同一个</strong>令牌，便于跨表关联与一致还原。</li>
+  <li><b>下载主字典</b>：导出含全部明文映射的 <code>主字典.json</code>，是还原的唯一依据。</li>
+  <li><b>加密导出</b>：可设置口令，将主字典以 AES-GCM 加密后导出（<code>主字典_加密.json</code>），导入时凭同一口令解密合并；丢失口令将无法还原。</li>
+  <li><b>导入（合并）</b>：可把多个字典（含加密字典）合并到当前会话，支持跨批次还原。</li>
+  <li><b>清空</b>：清空当前会话字典（仅内存，不影响已下载文件）。</li>
+</ul>
+<div class="note">⚠ 主字典等同于「明文全集」，丢失则不可逆数据永久无法还原；泄露则脱敏形同虚设。请加密保管、切勿外发。</div>
+</div>
+
+<div class="card" id="s7"><h2>7. 13 类敏感信息识别</h2>
+<p>工具内置 13 类通用规则，自动扫描文本并高亮样例：</p>
+<table>
+  <tr><th>类别</th><th>默认方法</th><th>示例命中</th></tr>
+  <tr><td>人员姓名</td><td>保留（人工确认）</td><td>张三、李四先生</td></tr>
+  <tr><td>机构/单位名称</td><td>令牌化</td><td>某某科技有限公司</td></tr>
+  <tr><td>身份证号</td><td>令牌化</td><td>11010119900307123X</td></tr>
+  <tr><td>统一社会信用代码</td><td>令牌化</td><td>91110108MA01ABCD2E</td></tr>
+  <tr><td>手机号</td><td>掩码</td><td>13912345678</td></tr>
+  <tr><td>固定电话</td><td>掩码</td><td>010-12345678</td></tr>
+  <tr><td>银行卡号</td><td>令牌化</td><td>6217000000000000000</td></tr>
+  <tr><td>电子邮箱</td><td>掩码</td><td>name@example.com</td></tr>
+  <tr><td>金额/数字</td><td>令牌化</td><td>¥85,650元 / 12.5万元</td></tr>
+  <tr><td>日期</td><td>令牌化</td><td>2026-08-24</td></tr>
+  <tr><td>地址</td><td>掩码</td><td>北京市海淀区中关村大街1号</td></tr>
+  <tr><td>网址链接</td><td>令牌化</td><td>https://...</td></tr>
+  <tr><td>文书/合同编号、产品代码</td><td>令牌化</td><td>合同第2026-001号 / AB1234</td></tr>
+</table>
+<div class="note">⚠ 正则识别为启发式，可能存在误报/漏报：① 姓名识别较保守；② 同一串可能被多类同时命中，工具按全局字典去重只生成一个令牌；③ 极端情况下值被拆成多个 run 可能漏替换（常规生成文档罕见）。请务必在生成前人工核对。</div>
+</div>
+
+<div class="card" id="s8"><h2>8. 脱敏方法可逆性对照</h2>
+<table>
+  <tr><th>方法</th><th>可逆</th><th>还原所需</th></tr>
+  <tr><td>令牌化</td><td>✅</td><td>主字典</td></tr>
+  <tr><td>加密 AES</td><td>✅</td><td>主字典 + 口令</td></tr>
+  <tr><td>随机洗牌</td><td>✅</td><td>主字典（按值映射）</td></tr>
+  <tr><td>数值取整·可逆</td><td>✅</td><td>主字典 + 口令（余数随行带入）</td></tr>
+  <tr><td>掩码</td><td>❌</td><td>—</td></tr>
+  <tr><td>哈希</td><td>❌</td><td>—</td></tr>
+  <tr><td>泛化</td><td>❌</td><td>—</td></tr>
+  <tr><td>数值取整·不可逆</td><td>❌</td><td>—</td></tr>
+  <tr><td>删除列</td><td>❌</td><td>—</td></tr>
+  <tr><td>PDF/图片遮挡</td><td>❌</td><td>—</td></tr>
+</table>
+</div>
+
+<div class="card" id="s9"><h2>9. 安全与合规</h2>
+<ul>
+  <li><b>数据不出本机</b>：全部运算在浏览器本地完成，无网络上传。</li>
+  <li><b>口令不落盘</b>：加密口令仅用于本次会话派生密钥，不写入字典文件。</li>
+  <li><b>合规参考</b>：设计参照 GB/T 37988-2019（PA10）、GB/T 35273、JR/T 0171-2020 等。</li>
+  <li><b>主字典保管</b>：本地加密存储、最小化分发、用完即清。</li>
+</ul>
+<div class="note">本工具按 MIT 许可证发布，仅供信息整理与学习，<b style="color:var(--warn)">不保证数据完全安全，请注意备份源文件</b>。</div>
+</div>
+
+<div class="card" id="s10"><h2>10. 常见问题（FAQ）</h2>
+<h3>Q1：脱敏后还能还原吗？</h3>
+<p>取决于所用方法。令牌化/加密/洗牌/可逆取整可还原（需主字典，加密类还需口令）；掩码/哈希/泛化/删除/遮挡式不可还原。需要还原的字段务必使用可逆方法。</p>
+<h3>Q2：多个文件能用同一字典还原吗？</h3>
+<p>可以。全局字典「同值同码」，跨文件共享。在「④ 全局字典」下载主字典，或把多个字典「导入合并」。</p>
+<h3>Q3：Word 里的值被拆成几段格式，会漏替换吗？</h3>
+<p>工具按段落（run）聚合文本后做替换，常规文档可靠。极个别复杂嵌套排版存在漏替风险，生成后请预览核对。</p>
+<h3>Q4：PDF / 图片能还原吗？</h3>
+<p>选「遮挡式」时像素/版面被打码，不可逆；选「转为 Word 脱敏」时，工具先把内容提取为文本并令牌化生成 .docx，可凭主字典还原。需要还原请使用「转为 Word」模式。</p>
+<h3>Q5：引擎与离线</h3>
+<p>表格、Word、PPT、ZIP 完全离线。PDF/图片引擎（pdf.js、tesseract.js 及训练数据）已随工具本地化在 <code>libs/</code> 目录，打开工具所在文件夹即可彻底离线运行；若本地引擎缺失则自动回退 CDN（需联网一次）。</p>
+</div>
+</div>
+
+<footer>
+  原创作者：<b>SuperLaos</b> ｜ 公众号：<b>技术宅SuperLaos</b> ｜ 许可：MIT ｜ 配套《技术文档》《README》见同目录
+</footer>
+<script>
+window.addEventListener('message',e=>{if(e.data&&e.data.theme){if(e.data.theme==='system'){document.documentElement.removeAttribute('data-theme');}else{document.documentElement.setAttribute('data-theme',e.data.theme);}}});
+</script>
+</body>
+</html>

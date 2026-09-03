@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InfoCloak V2</title>
+<script src="libs/xlsx.full.min.js"></script>
+<script src="libs/jszip.min.js"></script>
+<script src="libs/pdf-lib.min.js"></script>
+<style>
+  :root{
+    --bg:#f5f7fa; --panel:#ffffff; --ink:#1f2329; --muted:#6b7280; --line:#e3e8ef;
+    --brand:#2563eb; --brand2:#1d4ed8; --warn:#b91c1c; --ok:#15803d; --chip:#eef2ff; --warn-bg:#fef2f2;
+    --hover:#f1f5f9; --field:#ffffff; --code-bg:#eef2ff; --preview-bg:#fbfcfe; --th-bg:#f1f5f9; --lic-bg:#f8fafc;
+  }
+  [data-theme="dark"]{
+    --bg:#0f1115; --panel:#171a21; --ink:#e6e8eb; --muted:#9aa4b2; --line:#2a2f3a;
+    --brand:#3b82f6; --brand2:#60a5fa; --warn:#f87171; --ok:#4ade80; --chip:#1e293b; --warn-bg:#2a0f0f;
+    --hover:#1f2530; --field:#0f1115; --code-bg:#1e293b; --preview-bg:#11151c; --th-bg:#1f2530; --lic-bg:#11151c;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0f1115; --panel:#171a21; --ink:#e6e8eb; --muted:#9aa4b2; --line:#2a2f3a;
+      --brand:#3b82f6; --brand2:#60a5fa; --warn:#f87171; --ok:#4ade80; --chip:#1e293b; --warn-bg:#2a0f0f;
+      --hover:#1f2530; --field:#0f1115; --code-bg:#1e293b; --preview-bg:#11151c; --th-bg:#1f2530; --lic-bg:#11151c;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.6}
+  header{background:var(--panel);border-bottom:1px solid var(--line);padding:16px 0}
+  header .hdr-inner{max-width:1040px;margin:0 auto;padding:0 16px}
+  header h1{margin:0;font-size:20px}
+  header p{margin:4px 0 0;color:var(--muted);font-size:13px}
+  header .byline{margin:8px 0 0;color:var(--muted);font-size:13px}
+  header .hdr-row{display:flex;align-items:center;justify-content:space-between;gap:16px}
+  header h1{margin:0;font-size:20px;flex:0 0 auto}
+  header .hdr-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  footer{margin:28px auto 32px;max-width:1040px;padding:16px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px;line-height:1.7;text-align:center}
+  footer .lic{background:var(--lic-bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:8px;color:var(--muted);text-align:center}
+  footer b{color:var(--ink)}
+  .wrap{max-width:1040px;margin:20px auto;padding:0 16px}
+  .tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+  .tab{padding:8px 16px;border:1px solid var(--line);background:var(--panel);border-radius:8px;cursor:pointer;font-size:14px}
+  .tab.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
+  .card h2{margin:0 0 12px;font-size:16px}
+  .hint{font-size:13px;color:var(--muted);margin:6px 0}
+  label{font-size:13px;display:inline-flex;align-items:center;gap:6px;margin-right:14px;margin-top:6px}
+  input[type=file],select,input[type=number],input[type=text]{font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--field);color:var(--ink)}
+  select{min-width:150px}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+  th,td{border:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}
+  th{background:var(--th-bg)}
+  button{background:var(--brand);color:#fff;border:none;padding:10px 18px;border-radius:8px;font-size:14px;cursor:pointer;margin-top:12px}
+  button.sec{background:var(--panel);color:var(--brand);border:1px solid var(--brand)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .preview{background:var(--preview-bg);border:1px dashed var(--line);border-radius:8px;padding:10px;overflow:auto;max-height:320px;margin-top:10px}
+  .msg{font-size:13px;margin-top:10px}
+  .msg.ok{color:var(--ok)} .msg.err{color:var(--warn)} .msg.warn{color:#b45309}
+  .pill{display:inline-block;background:var(--chip);color:var(--brand2);border-radius:999px;padding:2px 10px;font-size:12px;margin:2px}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:8px 0}
+  code{background:var(--code-bg);padding:1px 6px;border-radius:4px;font-size:12px}
+  .clsbox{border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:8px}
+  .clsbox .ttl{font-weight:600;font-size:13px}
+  .small{font-size:12px;color:var(--muted)}
+  .layout{display:flex;gap:0;max-width:1180px;margin:20px auto;padding:0 16px;align-items:flex-start}
+  .sidebar{width:208px;flex:0 0 208px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-right:16px;position:sticky;top:16px}
+  .sidebar .brand{font-weight:700;font-size:14px;padding:4px 8px 12px;border-bottom:1px solid var(--line);margin-bottom:10px}
+  .navitem{display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:14px;cursor:pointer;color:var(--ink);font-family:inherit}
+  .navitem:hover{border-color:var(--brand)}
+  .navitem.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .navsep{height:1px;background:var(--line);margin:10px 4px}
+  .navdrop{width:100%;margin-bottom:0}
+  .navdrop-hdr{display:flex;align-items:center;justify-content:space-between;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:14px;cursor:pointer;color:var(--ink);font-family:inherit;user-select:none}
+  .navdrop-hdr:hover{border-color:var(--brand)}
+  .navdrop.active .navdrop-hdr{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .navdrop-menu{display:none;margin:0 -12px 8px;padding:0;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .navdrop-menu.show{display:block}
+  .navdrop-menu a{display:block;padding:10px 14px;font-size:14px;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}
+  .navdrop-menu a:last-child{border-bottom:none}
+  .navdrop-menu a:hover{background:var(--brand);color:#fff}
+  .workarea{flex:1 1 auto;min-width:0}
+  iframe.doc{width:100%;height:78vh;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+  .themebar{margin-top:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .theme-lbl{font-size:13px;color:var(--muted)}
+  .tbtn{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:5px 14px;font-size:13px;cursor:pointer;margin-top:0;font-family:inherit}
+  .tbtn:hover{border-color:var(--brand)}
+  .tbtn.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr-inner">
+    <div class="hdr-row">
+      <h1 data-i18n="hdr_title">隐信通 V2--通用数据脱敏工具</h1>
+      <div class="hdr-tools">
+        <span class="theme-lbl" data-i18n="lbl_theme">主题：</span>
+        <button type="button" class="tbtn" id="thLight" data-i18n="th_light" onclick="setTheme('light')">浅色</button>
+        <button type="button" class="tbtn" id="thDark" data-i18n="th_dark" onclick="setTheme('dark')">深色</button>
+        <button type="button" class="tbtn" id="thSys" data-i18n="th_sys" onclick="setTheme('system')">跟随系统</button>
+        <span class="theme-lbl" data-i18n="lbl_lang" style="margin-left:14px">语言：</span>
+        <button type="button" class="tbtn" id="zhBtn" onclick="setLang('zh')">中文</button>
+        <button type="button" class="tbtn" id="enBtn" onclick="setLang('en')">EN</button>
+      </div>
+    </div>
+    <p data-i18n="hdr_sub"><b>全程纯前端离线，数据不出本机。</b><br>
+    覆盖 Excel / CSV / Word / PowerPoint / PDF / 图片 / ZIP（含嵌套）。结构化文本格式（表格、Word、PPT、ZIP 内文档）支持脱敏 + 还原。<br>
+    PDF / 图片支持「遮挡式（不可逆）」与「转为 Word 脱敏（可逆）」两种模式。</p>
+    <p class="byline" data-i18n="hdr_byline">原创作者：SuperLaos ｜ 公众号：<b>技术宅SuperLaos</b> ｜ 许可：MIT</p>
+  </div>
+</header>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand" data-i18n="side_brand">通用数据脱敏工具 v2</div>
+    <nav id="nav">
+      <button class="navitem active" id="t1" data-i18n="nav_t1" onclick="showTab('t1')">① 表格脱敏</button>
+      <button class="navitem" id="t2" data-i18n="nav_t2" onclick="showTab('t2')">② 文档脱敏</button>
+      <button class="navitem" id="t3" data-i18n="nav_t3" onclick="showTab('t3')">③ 还原（统一）</button>
+      <button class="navitem" id="t4" data-i18n="nav_t4" onclick="showTab('t4')">④ 全局字典</button>
+      <div class="navsep"></div>
+      <div class="navdrop" id="t5">
+        <div class="navdrop-hdr" onclick="toggleHelpMenu()">
+          <span data-i18n="nav_t5">使用帮助</span>
+          <span id="t5arrow">▼</span>
+        </div>
+        <div class="navdrop-menu" id="helpMenu">
+          <a href="#" onclick="event.stopPropagation();toggleHelpMenu();$('p5').style.display='block';var fr=$('helpFrame');if(fr.getAttribute('data-loaded')!=='guide'){fr.src='files/User_Guide.html';fr.setAttribute('data-loaded','guide');}return false"><span data-i18n="nav_t5_a">使用帮助</span></a>
+          <a href="https://mp.weixin.qq.com/s/sqMM016n9BYX2htt-lUBRQ" target="_blank" onclick="event.stopPropagation();toggleHelpMenu()"><span data-i18n="nav_t5_b">指南（一）</span></a>
+          <a href="https://mp.weixin.qq.com/s/OC2I2Hx-peVgw6l59vtK5A" target="_blank" onclick="event.stopPropagation();toggleHelpMenu()"><span data-i18n="nav_t5_c">指南（二）</span></a>
+        </div>
+      </div>
+      <button class="navitem" id="t6" data-i18n="nav_t6" onclick="showTab('t6')">技术文档</button>
+    </nav>
+  </aside>
+  <main class="workarea">
+
+  <!-- ============ ① 表格脱敏 ============ -->
+  <div id="p1">
+    <div class="card">
+      <h2 data-i18n="t1_h1">1. 上传 Excel / CSV</h2>
+      <input type="file" id="f1" accept=".xlsx,.xls,.csv">
+      <div class="msg" id="m1"></div>
+    </div>
+    <div class="card" id="c1" style="display:none">
+      <h2 data-i18n="t1_h2">2. 配置每列脱敏方法（接入全局字典 · 同值同码）</h2>
+      <div class="row">
+        <label><span data-i18n="t1_maskkeep_pre">掩码保留首尾各</span> <input type="number" id="maskKeep" value="1" min="0" style="width:60px"> <span data-i18n="t1_maskkeep_suf">位</span></label>
+        <label><span data-i18n="t1_pwd_lbl">加密口令（加密/可逆取整需要）</span><input type="text" id="pwd" placeholder="设置口令" style="width:160px"></label>
+      </div>
+      <div class="msg hint" data-i18n="t1_hint">方法：保留 / 令牌化(可逆) / 掩码(不可逆) / 哈希(不可逆) / 泛化(不可逆) / 加密AES(可逆) / 随机洗牌(可逆) / 数值取整·不可逆 / 数值取整·可逆(需口令，可指定精度) / 删除列(不可逆)。令牌化/洗牌/加密的值会进入全局字典，跨文件同值同码。</div>
+      <table id="colTbl"><thead><tr><th style="width:28%" data-i18n="t1_th0">列名</th><th data-i18n="t1_th1">方法</th><th data-i18n="t1_th2">精度（仅数值取整）</th></tr></thead><tbody></tbody></table>
+      <button onclick="genTable()" data-i18n="t1_btn_gen">生成脱敏四件套</button>
+      <div class="msg" id="g1"></div>
+    </div>
+    <div class="card" id="r1" style="display:none">
+      <h2 data-i18n="t1_prev_h">3. 预览（前 15 行）</h2>
+      <div class="preview"><table id="prevT"></table></div>
+      <div class="row">
+        <button onclick="dlTable('deid')" data-i18n="t1_btn_deid">下载 脱敏后文件</button>
+        <button class="sec" onclick="dlTable('dict')" data-i18n="t1_btn_dict">下载 编码字典.json</button>
+        <button class="sec" onclick="dlTable('scheme')" data-i18n="t1_btn_scheme">下载 脱敏方案.md</button>
+        <button class="sec" onclick="dlTable('restoreDoc')" data-i18n="t1_btn_restore">下载 还原方案.md</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ② 文档脱敏 ============ -->
+  <div id="p2" style="display:none">
+    <div style="background:var(--warn-bg);border:2px solid var(--warn);border-radius:12px;padding:14px 18px;margin:0 0 16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span style="font-size:20px">⚠️</span>
+        <b style="font-size:15px;color:var(--warn)">重要提醒：字典不会自动保存！</b>
+      </div>
+      <div style="font-size:13px;line-height:1.9;color:var(--ink)">
+        文档脱敏与表格不同——表格会自动产出四件套（脱敏文件+字典+方案），<b>文档只下载脱敏后的 .docx，字典不会自动附带</b>。<br>
+        脱敏完成后请立即去「④ 全局字典」下载：<br>
+        · 纯令牌化 → 下载 <b>主字典.json</b><br>
+        · 用了 AES 加密或数值取整·可逆 → 下载 <b>加密主字典.json</b> + 口令<br>
+        <span style="color:var(--warn)">关闭此页面后字典将永久丢失，脱敏后的文档无法还原！</span>
+      </div>
+    </div>
+    <div class="card">
+      <h2 data-i18n="t2_h1">1. 上传文档（Word / PPT / PDF / 图片 / Excel / CSV / ZIP）</h2>
+      <input type="file" id="f2" accept=".docx,.pptx,.pdf,.png,.jpg,.jpeg,.xlsx,.xls,.doc,.csv,.zip">
+      <div class="row" id="modeRow">
+        <label><span data-i18n="t2_pdfmode_lbl">PDF / 图片脱敏模式：</span>
+          <select id="pdfMode">
+            <option value="doc" data-i18n="pdfmode_doc">转为 Word 脱敏（可逆 · 推荐）</option>
+            <option value="block" data-i18n="pdfmode_block">遮挡式（不可逆 · 保留原格式）</option>
+          </select>
+        </label>
+      </div>
+      <div class="msg hint" data-i18n="t2_hint">Word / PPT / Excel / CSV / ZIP 为纯前端离线处理；PDF 与图片引擎已本地化（libs/pdfjs、libs/tesseract），可彻底离线。旧版 .doc 请先另存为 .docx。</div>
+      <div class="msg" id="m2"></div>
+    </div>
+
+    <div class="card" id="batchCard">
+      <h2 data-i18n="t2_batch_h">批量处理（拖拽文件夹 / 多文件）</h2>
+      <div class="msg hint" data-i18n="t2_batch_hint">将整个文件夹或多个文件拖到下方区域（支持嵌套），或点击按钮选择。系统按默认策略自动脱敏（结构化文本令牌化/掩码，PDF/图片转为 Word 令牌化），结果打包为 <code>批量脱敏结果.zip</code>，并累计进全局字典。</div>
+      <div id="dropzone" style="border:2px dashed var(--line);border-radius:12px;padding:28px;text-align:center;color:var(--muted);cursor:pointer" data-i18n="t2_dropzone">把文件 / 文件夹拖到这里，或点击选择</div>
+      <input type="file" id="batchFolder" webkitdirectory directory multiple style="display:none">
+      <input type="file" id="batchFiles" multiple style="display:none">
+      <div class="row">
+        <button type="button" onclick="document.getElementById('batchFolder').click()" data-i18n="t2_btn_folder">选择文件夹</button>
+        <button type="button" class="sec" onclick="document.getElementById('batchFiles').click()" data-i18n="t2_btn_files">选择多个文件</button>
+        <button type="button" class="sec" onclick="startBatch()" data-i18n="t2_btn_start">开始批量脱敏</button>
+      </div>
+      <div class="msg" id="batchMsg"></div>
+      <div class="row" id="batchProgRow" style="display:none"><div id="batchBar" style="flex:1;height:10px;background:var(--hover);border-radius:6px;overflow:hidden"><div id="batchFill" style="height:100%;width:0;background:var(--brand);transition:width .2s"></div></div><span id="batchPct" class="small">0%</span></div>
+      <div class="preview" id="batchLog" style="display:none"></div>
+    </div>
+    <div class="card" id="c2" style="display:none">
+      <h2 data-i18n="t2_h2">2. 敏感识别结果（13 类通用规则 · 可逐项确认）</h2>
+      <div class="msg hint" data-i18n="t2_hint2">工具按 13 类规则自动识别，请勾选要脱敏的类并选择方法。默认：可还原类→令牌化，手机/地址→掩码。人员姓名识别较宽松，可能误报，请人工确认。</div>
+      <div id="clsList"></div>
+      <div class="row">
+        <label><span data-i18n="t2_maskkeep_pre">掩码保留首尾各</span> <input type="number" id="maskKeep2" value="1" min="0" style="width:60px"> <span data-i18n="t2_maskkeep_suf">位</span></label>
+        <label><span data-i18n="t2_pwd2_lbl">加密口令（若选加密）</span><input type="text" id="pwd2" placeholder="口令" style="width:160px"></label>
+      </div>
+      <button onclick="genDoc()" data-i18n="t2_btn_gendoc">生成脱敏文档</button>
+      <div class="msg" id="g2"></div>
+    </div>
+    <div class="card" id="r2" style="display:none">
+      <h2 data-i18n="t2_r2_h">3. 处理完成</h2>
+      <div class="preview" id="docOut"></div>
+      <div class="msg" id="docMsg"></div>
+      <div class="msg warn" id="dictWarn" style="margin-top:14px;padding:10px 12px;border:1px solid var(--warn);border-radius:8px;background:var(--warn-bg, rgba(180,83,9,0.08))"></div>
+    </div>
+  </div>
+
+  <!-- ============ ③ 还原 ============ -->
+  <div id="p3" style="display:none">
+    <div class="card">
+      <h2 data-i18n="t3_h1">1. 上传脱敏文件 + 主字典</h2>
+      <div class="row">
+        <label><span data-i18n="t3_lbl_file">脱敏文件</span> <input type="file" id="rf" accept=".docx,.pptx,.xlsx,.xls,.csv"></label>
+        <label><span data-i18n="t3_lbl_dict">主字典 .json</span> <input type="file" id="rd"></label>
+      </div>
+      <div class="row"><label><span data-i18n="t3_pwd_lbl">加密口令（含加密列/令牌时如有）</span><input type="text" id="rpwd" placeholder="口令" style="width:160px"></label></div>
+      <button onclick="restoreFile()" data-i18n="t3_btn_restore">还原为明文</button>
+      <div class="msg" id="rmsg"></div>
+      <div class="preview" id="rprev" style="display:none"></div>
+      <div class="row" id="rdl" style="display:none"><button onclick="dlRestore()" data-i18n="t3_btn_dl">下载 还原版</button></div>
+    </div>
+  </div>
+
+  <!-- ============ ④ 全局字典 ============ -->
+  <div id="p4" style="display:none">
+    <div class="card">
+      <h2 data-i18n="t4_h1">全局字典（跨文件同值同码）</h2>
+      <div class="msg" id="dictStat"></div>
+      <div class="row">
+        <label><span data-i18n="t4_pwd_lbl">字典口令（AES 加密导出/导入）</span><input type="text" id="dictPwd" placeholder="设置/输入口令" style="width:170px"></label>
+      </div>
+      <div class="row">
+        <button onclick="dlMaster()" data-i18n="t4_btn_master">下载 主字典.json</button>
+        <button class="sec" onclick="dlMasterEnc()" data-i18n="t4_btn_masterenc">下载 加密主字典.json</button>
+        <button class="sec" onclick="impMaster()" data-i18n="t4_btn_imp">导入 主字典.json（合并）</button>
+        <button class="sec" onclick="impMasterEnc()" data-i18n="t4_btn_impenc">导入 加密主字典</button>
+        <button class="sec" onclick="clearMaster()" data-i18n="t4_btn_clear">清空当前会话字典</button>
+        <input type="file" id="impFile" accept=".json" style="display:none">
+        <input type="file" id="impEncFile" accept=".json" style="display:none">
+      </div>
+      <div class="msg hint" data-i18n="t4_hint">主字典含全部明文映射，是最高敏感资产，切勿随脱敏文件外发；仅本地独掌。加密导出后用口令保护，丢失口令将无法还原。</div>
+    </div>
+  </div>
+  <!-- ============ ⑤ 使用帮助 ============ -->
+  <div id="p5" style="display:none"><iframe id="helpFrame" name="helpFrame" class="doc" title="使用帮助"></iframe></div>
+  <!-- ============ ⑥ 技术文档 ============ -->
+  <div id="p6" style="display:none"><iframe id="techFrame" class="doc" title="技术文档"></iframe></div>
+  </main>
+</div>
+
+<script>
+/* ===================== 通用工具函数 ===================== */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const b64=buf=>btoa(String.fromCharCode(...new Uint8Array(buf)));
+const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const randHex=n=>{const a=new Uint8Array(n);crypto.getRandomValues(a);return Array.from(a,b=>b.toString(16).padStart(2,'0')).join('');};
+const escapeReg=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+
+/* ===================== 多语言 i18n ===================== */
+let LANG='zh';
+function detectLang(){try{const s=localStorage.getItem('iclang');if(s==='zh'||s==='en')return s;}catch(e){}
+  const nav=(navigator.language||navigator.userLanguage||'zh-CN').toLowerCase();return /^zh/.test(nav)?'zh':'en';}
+function T(zh,en,vars){let s=(LANG==='en'&&en!=null)?en:zh;if(vars)for(const k in vars)s=String(s).split('{'+k+'}').join(vars[k]==null?'':vars[k]);return s;}
+const I18N={
+ 'hdr_title':{zh:'隐信通 V2--通用数据脱敏工具',en:'InfoCloak V2'},
+ 'hdr_sub':{zh:'<b>全程纯前端离线，数据不出本机。</b><br>覆盖 Excel / CSV / Word / PowerPoint / PDF / 图片 / ZIP（含嵌套）。结构化文本格式（表格、Word、PPT、ZIP 内文档）支持脱敏 + 还原。<br>PDF / 图片支持「遮挡式（不可逆）」与「转为 Word 脱敏（可逆）」两种模式。',en:'<b>Fully offline, pure-frontend - data never leaves your machine.</b><br>Covers Excel / CSV / Word / PowerPoint / PDF / Images / ZIP (nested). Structured text (tables, Word, PPT, in-ZIP docs) supports masking + restore.<br>PDF / Images support both "Redaction (irreversible)" and "Convert to Word (reversible)" modes.',html:true},
+ 'hdr_byline':{zh:'原创作者：SuperLaos ｜ 公众号：<b>技术宅SuperLaos</b> ｜ 许可：MIT',en:'Author: SuperLaos | WeChat: <b>技术宅SuperLaos</b> | License: MIT',html:true},
+ 'lbl_theme':{zh:'主题：',en:'Theme:'},
+ 'lbl_lang':{zh:'语言：',en:'Language:'},
+ 'th_light':{zh:'浅色',en:'Light'},
+ 'th_dark':{zh:'深色',en:'Dark'},
+ 'th_sys':{zh:'跟随系统',en:'System'},
+ 'side_brand':{zh:'隐信通 V2--通用数据脱敏工具',en:'InfoCloak V2'},
+ 'nav_t1':{zh:'① 表格脱敏',en:'① Table Masking'},
+ 'nav_t2':{zh:'② 文档脱敏',en:'② Document Masking'},
+'nav_t3':{zh:'③ 还原（统一）',en:'③ Restore'},
+ 'nav_t4':{zh:'④ 全局字典',en:'④ Global Dictionary'},
+ 'nav_t5':{zh:'使用帮助',en:'User Guide'},
+'nav_t5_a':{zh:'使用帮助',en:'User Guide'},
+'nav_t5_b':{zh:'指南（一）',en:'Guide One'},
+'nav_t5_c':{zh:'指南（二）',en:'Guide Two'},
+ 'nav_t6':{zh:'技术文档',en:'Tech Docs'},
+ 't1_h1':{zh:'1. 上传 Excel / CSV',en:'1. Upload Excel / CSV'},
+ 't1_h2':{zh:'2. 配置每列脱敏方法（接入全局字典 · 同值同码）',en:'2. Configure per-column method (global dictionary · same-value-same-code)'},
+ 't1_maskkeep_pre':{zh:'掩码保留首尾各',en:'Mask keeps first & last'},
+ 't1_maskkeep_suf':{zh:'位',en:'chars'},
+ 't1_pwd_ph':{ph:{zh:'设置口令',en:'Set passphrase'}},
+ 't1_pwd_lbl':{zh:'加密口令（加密/可逆取整需要）',en:'Passphrase (for AES / reversible rounding)'},
+ 't1_hint':{zh:'方法：保留 / 令牌化(可逆) / 掩码(不可逆) / 哈希(不可逆) / 泛化(不可逆) / 加密AES(可逆) / 随机洗牌(可逆) / 数值取整·不可逆 / 数值取整·可逆(需口令，可指定精度) / 删除列(不可逆)。令牌化/洗牌/加密的值会进入全局字典，跨文件同值同码。',en:'Methods: keep / tokenize (reversible) / mask (irreversible) / hash (irreversible) / generalize (irreversible) / AES encrypt (reversible) / shuffle (reversible) / round (irreversible) / round (reversible, needs passphrase) / drop column (irreversible). Tokenized / shuffled / encrypted values enter the global dictionary with same-value-same-code across files.'},
+ 't1_th0':{zh:'列名',en:'Column'},
+ 't1_th1':{zh:'方法',en:'Method'},
+ 't1_th2':{zh:'精度（仅数值取整）',en:'Precision (rounding only)'},
+ 't1_btn_gen':{zh:'生成脱敏四件套',en:'Generate masking set'},
+ 't1_btn_deid':{zh:'下载 脱敏后文件',en:'Download masked file'},
+ 't1_btn_dict':{zh:'下载 编码字典.json',en:'Download code dictionary'},
+ 't1_btn_scheme':{zh:'下载 脱敏方案.md',en:'Download masking plan'},
+ 't1_btn_restore':{zh:'下载 还原方案.md',en:'Download restore plan'},
+ 't1_prev_h':{zh:'3. 预览（前 15 行）',en:'3. Preview (first 15 rows)'},
+ 't2_h1':{zh:'1. 上传文档（Word / PPT / PDF / 图片 / Excel / CSV / ZIP）',en:'1. Upload document (Word / PPT / PDF / Image / Excel / CSV / ZIP)'},
+ 't2_pdfmode_lbl':{zh:'PDF / 图片脱敏模式：',en:'PDF / Image mode:'},
+ 'pdfmode_doc':{zh:'转为 Word 脱敏（可逆 · 推荐）',en:'Convert to Word (reversible · recommended)'},
+ 'pdfmode_block':{zh:'遮挡式（不可逆 · 保留原格式）',en:'Redaction (irreversible · keeps layout)'},
+ 't2_hint':{zh:'Word / PPT / Excel / CSV / ZIP 为纯前端离线处理；PDF 与图片引擎已本地化（libs/pdfjs、libs/tesseract），可彻底离线。旧版 .doc 请先另存为 .docx。',en:'Word / PPT / Excel / CSV / ZIP are processed fully offline; PDF and image engines are localized (libs/pdfjs, libs/tesseract) for complete offline use. For legacy .doc, save as .docx first.'},
+ 't2_batch_h':{zh:'批量处理（拖拽文件夹 / 多文件）',en:'Batch processing (drag folder / multiple files)'},
+ 't2_batch_hint':{zh:'将整个文件夹或多个文件拖到下方区域（支持嵌套），或点击按钮选择。系统按默认策略自动脱敏（结构化文本令牌化/掩码，PDF/图片转为 Word 令牌化），结果打包为 <code>批量脱敏结果.zip</code>，并累计进全局字典。',en:'Drag a whole folder or multiple files into the area below (nested supported), or click to choose. The system auto-masks by default strategy (tokenize/mask structured text, convert PDF/images to Word with tokenization), packages results as <code>batch_result.zip</code>, and accumulates into the global dictionary.',html:true},
+ 't2_dropzone':{zh:'把文件 / 文件夹拖到这里，或点击选择',en:'Drag files / folder here, or click to choose'},
+ 't2_btn_folder':{zh:'选择文件夹',en:'Choose folder'},
+ 't2_btn_files':{zh:'选择多个文件',en:'Choose files'},
+ 't2_btn_start':{zh:'开始批量脱敏',en:'Start batch masking'},
+ 't2_h2':{zh:'2. 敏感识别结果（13 类通用规则 · 可逐项确认）',en:'2. Sensitive detection results (13 generic rules · confirm per item)'},
+ 't2_hint2':{zh:'工具按 13 类规则自动识别，请勾选要脱敏的类并选择方法。默认：可还原类→令牌化，手机/地址→掩码。人员姓名识别较宽松，可能误报，请人工确认。',en:'The tool auto-detects by 13 rule categories. Select classes to mask and choose methods. Default: reversible classes to tokenize; phone/address to mask. Person-name detection is loose and may over-match; please verify manually.'},
+ 't2_maskkeep_pre':{zh:'掩码保留首尾各',en:'Mask keeps first & last'},
+ 't2_maskkeep_suf':{zh:'位',en:'chars'},
+ 't2_pwd2_ph':{ph:{zh:'口令',en:'Passphrase'}},
+ 't2_pwd2_lbl':{zh:'加密口令（若选加密）',en:'Passphrase (if encrypt)'},
+ 't2_btn_gendoc':{zh:'生成脱敏文档',en:'Generate masked document'},
+'t2_dict_warn':{zh:'⚠️ 字典不会自动保存！请立即去「④ 全局字典」下载主字典。纯令牌化→下载「主字典.json」；用了 AES 加密或数值取整·可逆→下载「加密主字典.json」+ 口令。关闭此页面后字典将丢失，脱敏文件无法还原！',en:'⚠️ The dictionary is NOT auto-saved! Go to "④ Global Dictionary" NOW to download it. Pure tokenization → download "Master Dictionary.json"; if AES encryption or reversible rounding was used → download "Encrypted Master Dictionary.json" + passphrase. Closing this page loses the dictionary permanently; the masked file cannot be restored!'},
+'t2_banner':{zh:'⚠️ 重要提醒：字典不会自动保存！脱敏完成后请立即去「④ 全局字典」下载：纯令牌化→下载「主字典.json」；用了 AES 加密或数值取整·可逆→下载「加密主字典.json」+ 口令。关闭此页面后字典将永久丢失，脱敏文件无法还原！',en:'⚠️ Important: The dictionary is NOT auto-saved! After masking, go to "④ Global Dictionary" immediately to download: pure tokenization → download "Master Dictionary.json"; if AES encryption or reversible rounding was used → download "Encrypted Master Dictionary.json" + passphrase. Closing this page loses the dictionary permanently; the masked file cannot be restored!',html:true},
+ 't2_r2_h':{zh:'3. 处理完成',en:'3. Done'},
+ 't3_h1':{zh:'1. 上传脱敏文件 + 主字典',en:'1. Upload masked file + master dictionary'},
+ 't3_lbl_file':{zh:'脱敏文件',en:'Masked file'},
+ 't3_lbl_dict':{zh:'主字典 .json',en:'Master dictionary .json'},
+ 't3_pwd_ph':{ph:{zh:'口令',en:'Passphrase'}},
+ 't3_pwd_lbl':{zh:'加密口令（含加密列/令牌时如有）',en:'Passphrase (if encrypted cols / tokens)'},
+ 't3_btn_restore':{zh:'还原为明文',en:'Restore to plaintext'},
+ 't3_btn_dl':{zh:'下载 还原版',en:'Download restored'},
+ 't4_h1':{zh:'全局字典（跨文件同值同码）',en:'Global dictionary (same-value-same-code across files)'},
+ 't4_pwd_ph':{ph:{zh:'设置/输入口令',en:'Set / enter passphrase'}},
+ 't4_pwd_lbl':{zh:'字典口令（AES 加密导出/导入）',en:'Dictionary passphrase (AES export / import)'},
+ 't4_btn_master':{zh:'下载 主字典.json',en:'Download master dictionary'},
+ 't4_btn_masterenc':{zh:'下载 加密主字典.json',en:'Download encrypted master dictionary'},
+ 't4_btn_imp':{zh:'导入 主字典.json（合并）',en:'Import master dictionary (merge)'},
+ 't4_btn_impenc':{zh:'导入 加密主字典',en:'Import encrypted master dictionary'},
+ 't4_btn_clear':{zh:'清空当前会话字典',en:'Clear current session dictionary'},
+ 't4_hint':{zh:'主字典含全部明文映射，是最高敏感资产，切勿随脱敏文件外发；仅本地独掌。加密导出后用口令保护，丢失口令将无法还原。',en:'The master dictionary holds all plaintext mappings and is the highest-sensitivity asset - never send it with masked files; keep it local only. Encrypted export is passphrase-protected; losing the passphrase means permanent loss of restore capability.'},
+ 'ft_lic':{zh:'<b>许可协议：</b>本工具按 <b>MIT 许可证</b> 发布，可自由使用、修改与再分发（请保留原创作者信息）。<br>本工具仅用于信息整理与学习，不保证数据完全安全，请注意备份源文件。<br>结构化文本（表格/Word/PPT/ZIP 内文档）支持脱敏+还原。<br>PDF / 图片支持「遮挡式（不可逆）」与「转为 Word 脱敏（可逆）」两种模式。<br><b style="color:var(--warn)">主字典含全部明文映射，务必本地独掌、严禁随脱敏文件外发。</b>',en:'<b>License:</b> Released under the <b>MIT License</b> - free to use, modify, and redistribute (please retain the original author attribution).<br>This tool is for information organizing and learning only; data safety is not guaranteed - back up your source files.<br>Structured text (tables / Word / PPT / in-ZIP docs) supports masking + restore.<br>PDF / Images support "Redaction (irreversible)" and "Convert to Word (reversible)" modes.<br><b style="color:var(--warn)">The master dictionary holds all plaintext mappings - keep it local and never distribute it with masked files.</b>',html:true},
+ 'ft_auth':{zh:'原创作者：<b>SuperLaos</b> ｜ 公众号：<b>技术宅SuperLaos</b>',en:'Author: <b>SuperLaos</b> | WeChat: <b>技术宅SuperLaos</b>',html:true}
+};
+function updateLangBtns(){['zhBtn','enBtn'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.toggle('active',(id==='zhBtn'?'zh':'en')===LANG);});}
+function applyStaticI18n(){document.querySelectorAll('[data-i18n]').forEach(el=>{const k=el.getAttribute('data-i18n');const v=I18N[k];if(!v)return;const t=v[LANG]||v.zh;if(v.html)el.innerHTML=t;else el.textContent=t;if(v.ph!=null)el.placeholder=(v.ph[LANG]||v.ph.zh);});}
+function postLang(){['helpFrame','techFrame'].forEach(id=>{const f=$(id);if(f&&f.getAttribute('data-loaded')){try{f.contentWindow.postMessage({lang:LANG},'*');}catch(e){}}});}
+function setLang(l){LANG=l;try{localStorage.setItem('iclang',l);}catch(e){}updateLangBtns();applyStaticI18n();refreshDynamicI18n();postLang();}
+
+/* 动态内容（列配置表 / 敏感识别面板）的语言表 */
+const METHOD_ORDER=['keep','token','mask','hash','generalize','encrypt','shuffle','round_irrev','round_rev','drop'];
+const METHOD_LABELS={
+ keep:{zh:'保留',en:'Keep'}, token:{zh:'令牌化(可逆)',en:'Tokenize (reversible)'}, mask:{zh:'掩码(不可逆)',en:'Mask (irreversible)'},
+ hash:{zh:'哈希(不可逆)',en:'Hash (irreversible)'}, generalize:{zh:'泛化(不可逆)',en:'Generalize (irreversible)'}, encrypt:{zh:'加密AES(可逆)',en:'AES encrypt (reversible)'},
+ shuffle:{zh:'随机洗牌(可逆)',en:'Shuffle (reversible)'}, round_irrev:{zh:'数值取整(不可逆)',en:'Round (irreversible)'}, round_rev:{zh:'数值取整(可逆,需口令)',en:'Round (reversible, passphrase)'}, drop:{zh:'删除列',en:'Drop column'}};
+const CLASS_LABELS={
+ person:{zh:'人员姓名',en:'Person name'}, org:{zh:'机构/单位名称',en:'Organization / entity'}, idcard:{zh:'身份证号',en:'ID card number'},
+ credit:{zh:'统一社会信用代码',en:'Unified Social Credit Code'}, phone:{zh:'手机号',en:'Mobile phone'}, tel:{zh:'固定电话',en:'Landline'},
+ bankcard:{zh:'银行卡号',en:'Bank card number'}, email:{zh:'电子邮箱',en:'Email'}, money:{zh:'金额/数字',en:'Amount / number'},
+ date:{zh:'日期',en:'Date'}, address:{zh:'地址',en:'Address'}, url:{zh:'网址链接',en:'URL'},
+ docno:{zh:'文书/合同编号',en:'Document / contract no.'}, custom:{zh:'产品/机构代码',en:'Product / org code'}};
+const PREC_LABELS=[{v:'one',t:{zh:'个位',en:'ones'}},{v:'ten',t:{zh:'十位',en:'tens'}},{v:'hun',t:{zh:'百位',en:'hundreds'}},{v:'thou',t:{zh:'千位',en:'thousands'}},{v:'wan',t:{zh:'万位',en:'ten-thousands'}},{v:'dec',t:{zh:'保留N位小数',en:'keep N decimals'}}];
+/* 切换语言后，同步已渲染的动态面板（不破坏用户已选方法） */
+function refreshDynamicI18n(){
+  const tb=$('colTbl').querySelector('tbody');
+  if(tb&&tb.children.length&&H.length){
+    [...tb.children].forEach(tr=>{
+      const sels=tr.querySelectorAll('select');
+      if(sels[0])[...sels[0].options].forEach((opt,j)=>{opt.textContent=METHOD_LABELS[METHOD_ORDER[j]][LANG];});
+      const ps=tr.querySelector('select[id^="prec_"]');
+      if(ps)[...ps.options].forEach((opt,j)=>{opt.textContent=PREC_LABELS[j].t[LANG];});
+    });
+  }
+  if(DOC&&DOC.detected&&Object.keys(DOC.detected).length){
+    const prev={};Object.keys(DOC.detected).forEach(t=>{const d=DOC.detected[t];if(d&&d.methodSel){prev[t]={method:d.methodSel.value,checked:d.checkbox?d.checkbox.checked:true};}});
+    renderClasses(DOC.detected);
+    Object.keys(prev).forEach(t=>{const d=DOC.detected[t];if(d&&d.methodSel){d.methodSel.value=prev[t].method;if(d.checkbox)d.checkbox.checked=prev[t].checked;}});
+  }
+}
+
+function maskValue(v,keep){v=String(v==null?'':v);if(v.length<=keep*2)return '*'.repeat(v.length);return v.slice(0,keep)+'*'.repeat(Math.max(1,v.length-keep*2))+v.slice(v.length-keep);}
+function generalizeValue(v){const s=String(v==null?'':v).trim();if(/^-?\d+(\.\d+)?$/.test(s)){const n=parseFloat(s);if(Math.abs(n)<10)return '<10';if(Math.abs(n)<100)return '10-100';if(Math.abs(n)<1000)return '100-1000';if(Math.abs(n)<10000)return '1000-10000';return '>=10000';}if(/^\d{4}[-/]\d{1,2}/.test(s))return s.slice(0,4);return s;}
+function roundTo(n,p){if(p>=0){const f=Math.pow(10,p);return Math.trunc(n/f)*f;}const f=Math.pow(10,-p);return Math.round(n*f)/f;}
+const fmtRem=r=>{if(r===-0)r=0;return String(Number(r.toFixed(9)));};
+
+async function sha256(salt,v){const enc=new TextEncoder();const h=await crypto.subtle.digest('SHA-256',enc.encode(salt+v));return b64(h).slice(0,16);}
+async function encryptVal(salt,pwd,val){const enc=new TextEncoder();const km=await crypto.subtle.importKey('raw',enc.encode(pwd),'PBKDF2',false,['deriveKey']);const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:100000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['encrypt']);const iv=crypto.getRandomValues(new Uint8Array(12));const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(val));return b64(iv)+':'+b64(ct);}
+async function decryptVal(salt,pwd,v){const [ivB,ctB]=v.split(':').map(unb64);const enc=new TextEncoder();const km=await crypto.subtle.importKey('raw',enc.encode(pwd),'PBKDF2',false,['deriveKey']);const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:100000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:ivB},key,ctB);return new TextDecoder().decode(pt);}
+
+/* ===================== 全局字典（同值同码） ===================== */
+const G={byCat:{},tok:{},counters:{},catIndex:{},catCount:0,salt:null,columns:{}};
+function catPrefix(category){if(!(category in G.catIndex))G.catIndex[category]=++G.catCount;return 'K'+G.catCount;}
+function getToken(category,value,method,type){
+  const key=category+'\u0000'+value;
+  if(G.byCat[key])return G.byCat[key];
+  const pref=catPrefix(category);
+  const n=(G.counters[pref]=(G.counters[pref]||0)+1);
+  const token=pref+'-'+String(n).padStart(4,'0');
+  G.byCat[key]=token;
+  G.tok[token]={original:value,method,type,category};
+  return token;
+}
+function allocSalt(){if(!G.salt){G.salt=b64(crypto.getRandomValues(new Uint8Array(16)));}return unb64(G.salt);}
+
+/* ===================== 13 类敏感识别 ===================== */
+const CLASSES=[
+  {type:'person',  label:'人员姓名',       re:/(?<=(?:姓名|联系人|经办人|负责人|客户代表)\s*[:：]?\s*)[一-龥]{2,3}|[一-龥]{2,3}(?=先生|女士|同志|同学|医生|老师)/g, def:'keep'},
+  {type:'org',     label:'机构/单位名称', re:/[一-龥]{2,}(?:公司|集团|银行|医院|事务所|学院|大学|学校|局|委员会|股份|有限|中心|协会|基金|研究所|研究院|出版社|电视台|报社|管委会)/g, def:'token'},
+  {type:'idcard',  label:'身份证号',      re:/[1-9]\d{5}(?:18|19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx]/g, def:'token'},
+  {type:'credit',  label:'统一社会信用代码', re:/[0-9A-HJ-NPQRTUWXY]{2}\d{6}[0-9A-HJ-NPQRTUWXY]{10}/g, def:'token'},
+  {type:'phone',   label:'手机号',         re:/1[3-9]\d{9}/g, def:'mask'},
+  {type:'tel',     label:'固定电话',       re:/(?<!\d)(?:\d{3,4}-)?\d{7,8}(?!\d)(?<!1[3-9]\d{9})/g, def:'mask'},
+  {type:'bankcard',label:'银行卡号',       re:/\b\d{16,19}\b/g, def:'token'},
+  {type:'email',   label:'电子邮箱',       re:/[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/g, def:'mask'},
+  {type:'money',   label:'金额/数字',      re:/[¥￥]?\d{1,3}(?:,\d{3})*(?:\.\d+)?\s*(?:万?元|万元|亿元)|[¥￥]\s*\d+(?:\.\d+)?/g, def:'token'},
+  {type:'date',    label:'日期',           re:/\d{4}[-/年](?:0?[1-9]|1[0-2])[-/月](?:0?[1-9]|[12]\d|3[01])日?/g, def:'token'},
+  {type:'address', label:'地址',           re:/(?<=(?:[\s，。、：:；;（）()【】]|地址|位于|住处|住址|户籍|现住))[一-龥]{1,}(?:省|市|区|县|路|街|道|号|栋|单元|室|大厦|广场|园区|村|苑|巷)/g, def:'mask'},
+  {type:'url',     label:'网址链接',       re:/https?:\/\/[^\s，。、）)】]+/g, def:'token'},
+  {type:'docno',   label:'文书/合同编号',  re:/(?:合同|协议|报告|通知|函|批复|决定)[字]?(?:\[?\d{4}\]?)?第?[\d\-]+号?|[A-Za-z]{2,}-?\d{4,}/g, def:'token'},
+  {type:'custom',  label:'产品/机构代码',  re:/[A-Z]{2,}\d{4,}/g, def:'token'}
+];
+const DOC_METHODS={keep:{label:'保留',rev:false},token:{label:'令牌化(可逆)',rev:true},encrypt:{label:'加密AES(可逆)',rev:true},mask:{label:'掩码(不可逆)',rev:false},drop:{label:'删除(不可逆)',rev:false}};
+
+/* ===================== 标签页 ===================== */
+function showTab(t){const panel='p'+t.slice(1);['t1','t2','t3','t4','t5','t6'].forEach(id=>{$(id).classList.toggle('active',id===t);});['p1','p2','p3','p4','p5','p6'].forEach(id=>{$(id).style.display=id===panel?'block':'none';});if(t==='t5'){const fr=$('helpFrame');if(!fr.getAttribute('data-loaded')){fr.src='files/User_Guide.html';fr.setAttribute('data-loaded','1');}fr.onload=()=>postTheme();}if(t==='t6'){const fr=$('techFrame');if(!fr.getAttribute('data-loaded')){fr.src='files/Tech_Docs.html';fr.setAttribute('data-loaded','1');}fr.onload=()=>postTheme();}}
+function toggleHelpMenu(){const m=$('helpMenu');m.classList.toggle('show');const open=m.classList.contains('show');$('t5arrow').textContent=open?'▲':'▼';}
+function showHelp(kind){toggleHelpMenu();if(kind==='guide'){showTab('t5');}}
+
+/* ===================== ① 表格脱敏 ===================== */
+let H=[],D=[],COLCFG={},OUT={},ROUND_P={};
+$('f1').addEventListener('change',e=>{
+  const f=e.target.files[0];if(!f)return;const base=(f.name||'data').replace(/\.[^.]+$/,'');
+  const r=new FileReader();r.onload=ev=>{try{
+    const wb=XLSX.read(ev.target.result,{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1});
+    H=rows[0].map((h,i)=>(h==null||h===''?'列'+(i+1):String(h)));
+    D=rows.slice(1).filter(r=>r.some(c=>c!==null&&c!==''));
+    buildColCfg();$('c1').style.display='';$('r1').style.display='none';
+    $('m1').innerHTML='<span class="msg ok">'+T('已读取 {c} 列，{r} 行。','Read {c} columns, {r} rows.',{c:H.length,r:D.length})+'</span>';
+  }catch(err){$('m1').innerHTML='<span class="msg err">'+T('读取失败：{e}','Read failed: {e}',{e:err.message})+'</span>';}};
+  r.readAsArrayBuffer(f);
+});
+function buildColCfg(){
+  const tb=$('colTbl').querySelector('tbody');tb.innerHTML='';COLCFG={};
+  H.forEach((h,i)=>{COLCFG[h]='keep';
+    const tr=document.createElement('tr');
+    const td1=document.createElement('td');td1.className='col-name';td1.textContent=h;
+    const td2=document.createElement('td');const sel=document.createElement('select');
+    METHOD_ORDER.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=METHOD_LABELS[m][LANG];sel.appendChild(o);});
+    const td3=document.createElement('td');td3.style.display='none';td3.id='precCell_'+i;
+    const prec=document.createElement('select');prec.id='prec_'+i;
+    PREC_LABELS.forEach(p=>{const o=document.createElement('option');o.value=p.v;o.textContent=p.t[LANG];prec.appendChild(o);});
+    const decN=document.createElement('input');decN.type='number';decN.id='decN_'+i;decN.value='2';decN.min='0';decN.max='6';decN.style.width='54px';decN.style.display='none';
+    prec.onchange=()=>{decN.style.display=prec.value==='dec'?'inline-block':'none';};
+    td3.appendChild(prec);td3.appendChild(decN);
+    sel.onchange=()=>{const v=sel.value;COLCFG[h]=v;td3.style.display=(v==='round_irrev'||v==='round_rev')?'':'none';};
+    td2.appendChild(sel);tr.appendChild(td1);tr.appendChild(td2);tr.appendChild(td3);tb.appendChild(tr);
+  });
+}
+async function genTable(){
+  const keep=parseInt($('maskKeep').value)||1;const pwd=$('pwd').value;OUT={};ROUND_P={};
+  const hasEnc=H.some(h=>COLCFG[h]==='encrypt');const hasRev=H.some(h=>COLCFG[h]==='round_rev');
+  const needPwd=hasEnc||hasRev;if(needPwd&&!pwd){$('g1').innerHTML='<span class="msg err">'+T('“加密”或“数值取整(可逆)”需要口令！','Passphrase required for "AES encrypt" or "reversible rounding"!')+'</span>';return;}
+  const saltBytes=needPwd?allocSalt():null;const revRem={};const shuffleMaps={};
+  H.forEach(h=>{if(COLCFG[h]==='shuffle')shuffleMaps[h]={};});
+  const outRows=[H.filter(h=>COLCFG[h]!=='drop')];const errs=[];
+  for(let r=0;r<D.length;r++){const row=D[r];const out=[];
+    for(let c=0;c<H.length;c++){const h=H[c];const m=COLCFG[h];if(m==='drop')continue;let val=row[c];
+      if(m==='keep')out.push(val);
+      else if(m==='token'){const k=String(val==null?'':val);if(k==='')out.push('');else{const cat='col:'+h;const t=getToken(cat,k,'token',h);out.push(t);}}
+      else if(m==='mask')out.push(maskValue(val,keep));
+      else if(m==='hash')out.push(await sha256('SALT_DEID_2026',val==null?'':val));
+      else if(m==='generalize')out.push(generalizeValue(val));
+      else if(m==='encrypt')out.push(await encryptVal(saltBytes,pwd,val==null?'':val));
+      else if(m==='shuffle'){const s=String(val==null?'':val);if(s==='')out.push('');else{if(!shuffleMaps[h][s]){shuffleMaps[h][s]='S'+(c+1)+'-'+randHex(8);}out.push(shuffleMaps[h][s]);}}
+      else if(m==='round_irrev'||m==='round_rev'){const pv=$('prec_'+c).value;const p=pv==='dec'?-parseInt($('decN_'+c).value||'2',10):({one:0,ten:1,hun:2,thou:3,wan:4}[pv]);ROUND_P[h]=p;const s=String(val==null?'':val).trim();const n=parseFloat(s);if(isNaN(n))out.push(val);else{const masked=roundTo(n,p);out.push(masked);if(m==='round_rev')(revRem[h]=revRem[h]||[]).push(n-masked);}}
+    }
+    outRows.push(out);
+  }
+  const revCols=H.filter(h=>COLCFG[h]==='round_rev');
+  for(const h of revCols){outRows[0].push(h+'_余项');const rems=revRem[h]||[];for(let r=0;r<D.length;r++){const rem=rems[r]!==undefined?rems[r]:0;outRows[r+1].push(await encryptVal(saltBytes,pwd,fmtRem(rem)));}}
+  // 记录列信息到全局字典（供还原按列路由）
+  H.forEach(h=>{const m=COLCFG[h];if(m==='token'){const cat='col:'+h;G.columns[h]={method:'token'};}else if(m==='encrypt')G.columns[h]={method:'encrypt',salt:G.salt};else if(m==='shuffle'){G.columns[h]={method:'shuffle',map:shuffleMaps[h]};for(const[k,v]of Object.entries(shuffleMaps[h]))G.tok[v]={original:k,method:'shuffle',type:h,category:'col:'+h};}else if(m==='round_rev')G.columns[h]={method:'round_rev',precision:ROUND_P[h],salt:G.salt};else if(m==='round_irrev')G.columns[h]={method:'round_irrev',precision:ROUND_P[h]};});
+  OUT.deid=outRows;OUT.dict=buildMaster();renderPrev(outRows);$('r1').style.display='';
+  await saveDownloads(getFourSetFiles(outRows,OUT.dict),'表格');
+  $('g1').innerHTML='<span class="msg ok">已生成四件套并累计进全局字典。可在「④ 全局字典」下载主字典，或去「③ 还原」还原。</span>';
+}
+function buildMaster(){return{version:3,createdAt:new Date().toISOString(),salt:G.salt,tok:G.tok,columns:G.columns};}
+function renderPrev(rows){const allH=rows[0];const vis=[];allH.forEach((x,i)=>{if(!x.endsWith('_余项'))vis.push(i);});let h='<thead><tr>'+vis.map(i=>'<th>'+esc(allH[i])+'</th>').join('')+'</tr></thead><tbody>';rows.slice(1,16).forEach(row=>{h+='<tr>'+vis.map(i=>'<td>'+esc(row[i]==null?'':row[i])+'</td>').join('')+'</tr>';});$('prevT').innerHTML=h+'</tbody>';}
+function makeDeidBlob(rows){const ws=XLSX.utils.aoa_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'脱敏数据');return new Blob([XLSX.write(wb,{bookType:'xlsx',type:'array'})],{type:'application/octet-stream'});}
+function makeDictBlob(d){return new Blob([JSON.stringify(d,null,2)],{type:'application/json'});}
+function schemeMd(rows,d){let s='# 脱敏方案\n\n生成时间：'+new Date().toISOString()+'\n\n## 逐列方法\n| 列 | 方法 | 可逆 |\n|---|---|---|\n';H.forEach(h=>{const m=COLCFG[h];s+='| '+h+' | '+m+' | '+(['keep','token','encrypt','shuffle','round_rev'].includes(m)?'是':'否')+' |\n';});s+='\n## 合规\n- GB/T 37988-2019 PA10；JR/T 0171-2020\n';return s;}
+function restoreMd(d){return '# 还原方案\n\n用「③ 还原」上传脱敏文件 + 主字典'+(Object.values(G.columns).some(c=>c.method==='encrypt'||c.method==='round_rev')?'+口令':'')+' 即可还原。\n';}
+function getFourSetFiles(rows,d){return[{name:'脱敏_数据.xlsx',blob:makeDeidBlob(rows)},{name:'编码字典.json',blob:makeDictBlob(d)},{name:'脱敏方案.md',blob:new Blob([schemeMd(rows,d)],{type:'text/markdown'})},{name:'还原方案.md',blob:new Blob([restoreMd(d)],{type:'text/markdown'})}];}
+async function saveDownloads(files,tag){for(const f of files)saveBlob(f.blob,f.name);}
+function saveBlob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);}
+function dlTable(t){if(t==='deid')saveBlob(makeDeidBlob(OUT.deid),'脱敏_数据.xlsx');else if(t==='dict')saveBlob(makeDictBlob(OUT.dict),'编码字典.json');else if(t==='scheme')saveBlob(new Blob([schemeMd(OUT.deid,OUT.dict)],{type:'text/markdown'}),'脱敏方案.md');else if(t==='restoreDoc')saveBlob(new Blob([restoreMd(OUT.dict)],{type:'text/markdown'}),'还原方案.md');}
+
+/* ===================== ② 文档脱敏 ===================== */
+let DOC={name:'',kind:'',xmlParts:null,zip:null,detected:{},fileObj:null};
+$('f2').addEventListener('change',async e=>{
+  const f=e.target.files[0];if(!f)return;DOC={name:f.name,kind:'',detected:{},fileObj:f};
+  const ext=f.name.toLowerCase().split('.').pop();
+  $('c2').style.display='none';$('r2').style.display='none';$('docOut').innerHTML='';$('docMsg').innerHTML='';
+  try{
+    if(ext==='docx'||ext==='pptx'){const buf=await f.arrayBuffer();const zip=await JSZip.loadAsync(buf);DOC.zip=zip;const txt=await collectDocText(zip,ext);const det=detect(txt);DOC.detected=det;renderClasses(det);$('c2').style.display='';$('m2').innerHTML='<span class="msg ok">'+ext.toUpperCase()+' 已解析，识别到 '+Object.values(det).reduce((a,b)=>a+b.size,0)+' 处敏感项。</span>';}
+    else if(ext==='xlsx'||ext==='xls'||ext==='csv'){DOC.kind='sheet';const buf=await f.arrayBuffer();const wb=XLSX.read(buf,{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];const rows=XLSX.utils.sheet_to_json(ws,{header:1});const txt=(rows||[]).map(r=>r.join(' ')).join('\n');const det=detect(txt);DOC.detected=det;DOC.sheetRows=rows;DOC.sheetName=wb.SheetNames[0];renderClasses(det);$('c2').style.display='';$('m2').innerHTML='<span class="msg ok">表格文档已解析，识别到 '+Object.values(det).reduce((a,b)=>a+b.size,0)+' 处敏感项（将按所选方法脱敏后重导出）。</span>';}
+    else if(ext==='zip'){DOC.kind='zip';$('m2').innerHTML='<span class="msg ok">ZIP 已载入，点击生成后将递归处理内部所有支持的文档/表格/PDF/图片。</span>';$('c2').style.display='none';await genZip(f);}
+    else if(ext==='pdf'){DOC.kind='pdf';await ensurePdf();if(window._pdfjs){const md=$('pdfMode').value==='doc'?'转为 Word（可逆）':'遮挡式（不可逆）';$('m2').innerHTML='<span class="msg ok">'+T('PDF 引擎已就绪，{m} 处理中…','PDF engine ready, processing as {m}…',{m:md})+'</span>';$('c2').style.display='none';await genPdf(f);}else{$('m2').innerHTML='<span class="msg err">'+T('PDF 引擎加载失败（需本地引擎或联网一次），无法处理。','PDF engine failed to load (needs local engine or one online fetch); cannot process.')+'</span>';}}
+    else if(['png','jpg','jpeg'].includes(ext)){DOC.kind='img';await ensureOcr();if(window._ocr){const md=$('pdfMode').value==='doc'?'转为 Word（可逆）':'遮挡式（不可逆）';$('m2').innerHTML='<span class="msg ok">'+T('OCR 引擎已就绪，{m} 处理中…','OCR engine ready, processing as {m}…',{m:md})+'</span>';$('c2').style.display='none';await genImg(f);}else{$('m2').innerHTML='<span class="msg err">'+T('OCR 引擎加载失败（需本地引擎或联网一次），无法处理。','OCR engine failed to load (needs local engine or one online fetch); cannot process.')+'</span>';}}
+    else if(ext==='doc'){$('m2').innerHTML='<span class="msg err">'+T('旧版 .doc 为二进制格式，本工具暂不支持直接解析，请先在 Word 中另存为 .docx 后再处理。','Legacy .doc is binary and not supported; please re-save as .docx in Word first.')+'</span>';$('c2').style.display='none';}
+    else{$('m2').innerHTML='<span class="msg err">'+T('不支持的文件类型。','Unsupported file type.')+'</span>';}
+  }catch(err){$('m2').innerHTML='<span class="msg err">'+T('解析失败：{e}','Parse failed: {e}',{e:err.message})+'</span>';}
+});
+function detect(text){const res={};for(const c of CLASSES){const set=new Set();let m;c.re.lastIndex=0;while((m=c.re.exec(text))){if(m[0].length>=2)set.add(m[0]);}if(set.size)res[c.type]={cls:c,values:[...set]};}return res;}
+function renderClasses(det){
+  const box=$('clsList');box.innerHTML='';
+  const keys=Object.keys(det);
+  if(!keys.length){box.innerHTML='<div class="msg hint">'+T('未识别到敏感项（或全为保留）。可直接生成（无变更）或切换其他方法。','No sensitive items detected (or all set to keep). You can generate as-is or switch methods.')+'</div>';return;}
+  keys.forEach(type=>{const {cls,values}=det[type];const div=document.createElement('div');div.className='clsbox';
+    const sel=document.createElement('select');Object.keys(DOC_METHODS).forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=METHOD_LABELS[m][LANG];if(m===cls.def)o.selected=true;sel.appendChild(o);});
+    const samples=values.slice(0,8).map(v=>'<span class="pill">'+esc(v)+'</span>').join('');
+    div.innerHTML='<div class="ttl">'+CLASS_LABELS[cls.type][LANG]+' <span class="small">（'+values.length+' 处）</span></div>';
+    const head=document.createElement('div');head.className='row';head.appendChild(sel);div.appendChild(head);
+    div.insertAdjacentHTML('beforeend','<div class="small">样例：'+samples+(values.length>8?' …':'')+'</div>');
+    box.appendChild(div);det[type].methodSel=sel;
+  });
+}
+async function collectDocText(zip,ext){
+  let txt='';const targets=ext==='docx'?/word\/.*\.xml$/:/ppt\/.*\.xml$/;
+  for(const name of Object.keys(zip.files)){if(zip.files[name].dir)continue;if(targets.test(name)){const c=await zip.files[name].async('string');txt+=extractRuns(c)+'\n';}}
+  return txt;
+}
+function extractRuns(c){let t='';const re=/<w:t[^>]*>([\s\S]*?)<\/w:t>/g;let m;while((m=re.exec(c)))t+=m[1];const re2=/<a:t[^>]*>([\s\S]*?)<\/a:t>/g;while((m=re2.exec(c)))t+=m[1];return t;}
+
+// 在 w:t / a:t 内部做替换（run 级）
+function xmlTextReplace(content,replMap){
+  const froms=[...replMap.keys()].sort((a,b)=>b.length-a.length).map(escapeReg);
+  if(!froms.length)return content;
+  const re=new RegExp(froms.join('|'),'g');const fn=m=>replMap.get(m);
+  content=content.replace(/<w:t([^>]*)>([\s\S]*?)<\/w:t>/g,(mm,a,t)=>'<w:t'+a+'>'+t.replace(re,fn)+'</w:t>');
+  content=content.replace(/<a:t([^>]*)>([\s\S]*?)<\/a:t>/g,(mm,a,t)=>'<a:t'+a+'>'+t.replace(re,fn)+'</a:t>');
+  return content;
+}
+async function buildReplMap(det,kind){
+  const pwd=$('pwd2').value;const keep=parseInt($('maskKeep2').value)||1;
+  const useEnc=Object.values(det).some(d=>d.methodSel&&d.methodSel.value==='encrypt');
+  const saltBytes=useEnc?allocSalt():null;
+  const map=new Map();
+  for(const type of Object.keys(det)){    const {cls,values,methodSel}=det[type];if(!methodSel)continue;const m=methodSel.value;if(m==='keep')continue;
+    for(const v of values){let to;
+      if(m==='drop'){map.set(v,'');continue;}
+      if(m==='token'){to=getToken('type:'+cls.type,v,'token',cls.type);}
+      else if(m==='mask'){to=maskValue(v,keep);}
+      else if(m==='encrypt'){to=await encryptVal(saltBytes,pwd,v);}
+      if(to!==undefined&&to!==v)map.set(v,to);
+    }
+  }
+  return map;
+}
+async function genDoc(){
+  const ext=DOC.name.toLowerCase().split('.').pop();
+  if(ext==='docx'||ext==='pptx'){
+    const map=await buildReplMap(DOC.detected);
+    if(!map.size){$('g2').innerHTML='<span class="msg warn">'+T('未选择任何脱敏项（或全为保留），无变更。','No masking items selected (or all set to keep); no changes.')+'</span>';return;}
+    const targets=ext==='docx'?/word\/.*\.xml$/:/ppt\/.*\.xml$/;
+    for(const name of Object.keys(DOC.zip.files)){if(DOC.zip.files[name].dir)continue;if(targets.test(name)){let c=await DOC.zip.files[name].async('string');c=xmlTextReplace(c,map);DOC.zip.file(name,c);}}
+    const mime=ext==='docx'?'application/vnd.openxmlformats-officedocument.wordprocessingml.document':'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    const blob=await DOC.zip.generateAsync({type:'blob',mimeType:mime,compression:'DEFLATE'});
+    showDocOut('docx'==ext?'Word':'PPT',blob,DOC.name.replace(/\.[^.]+$/,'')+'_脱敏'+(ext==='pptx'?'.pptx':'.docx'));
+    $('g2').innerHTML='<span class="msg ok">'+T('已脱敏 {n} 类替换项，并计入全局字典。可去「③ 还原」还原（令牌化/加密可逆）。','Masked {n} replacement items and added them to the master dictionary. Restore from "③ Restore" (tokenize / AES reversible).',{n:map.size})+'</span>'+'<br><span class="msg warn">'+T('t2_dict_warn')+'</span>';
+  }else if(DOC.kind==='sheet'){
+    // 表格类：按识别结果脱敏后重导出
+    const map=await buildReplMap(DOC.detected);if(!map.size){$('g2').innerHTML='<span class="msg warn">'+T('无变更。','No changes.')+'</span>';return;}
+    const rows=DOC.sheetRows.map(r=>r.map(c=>{let s=String(c==null?'':c);map.forEach((to,from)=>{s=s.split(from).join(to);});return s;}));
+    const ws=XLSX.utils.aoa_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,DOC.sheetName||'Sheet1');
+    const blob=new Blob([XLSX.write(wb,{bookType:ext==='csv'?'csv':'xlsx',type:'array'})],{type:'application/octet-stream'});
+    showDocOut('表格','blob'===typeof blob?blob:new Blob([blob]),DOC.name.replace(/\.[^.]+$/,'')+'_脱敏.'+ext);
+    $('g2').innerHTML='<span class="msg ok">'+T('已脱敏表格并计入全局字典。','Masked the table and added it to the master dictionary.')+'</span>';
+  }
+}
+function showDocOut(kind,blob,fname){
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=fname;a.textContent='下载 '+fname;a.className='pill';a.style.fontSize='13px';
+  $('docOut').innerHTML='<div class="msg ok">'+T('{k} 脱敏完成。','{k} masking complete.',{k:kind})+'</div>';$('docOut').appendChild(a);
+  $('r2').style.display='';
+  // 显示字典保存警告
+  $('dictWarn').innerHTML=T('t2_dict_warn');
+}
+
+/* ZIP 递归 */
+async function genZip(f){
+  const buf=await f.arrayBuffer();const zip=await JSZip.loadAsync(buf);
+  const log=[];
+  await recurseZip(zip,log);
+  const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
+  showDocOut('ZIP',blob,(DOC.name||'data').replace(/\.[^.]+$/,'')+'_脱敏.zip');
+  $('docMsg').innerHTML=log.join('<br>')||'';
+  $('g2')&&($('g2').innerHTML='<span class="msg ok">ZIP 递归处理完成。</span>');
+}
+async function recurseZip(zip,log){
+  for(const full of Object.keys(zip.files)){const f=zip.files[full];if(f.dir)continue;const low=full.toLowerCase();const base=full.split('/').pop();
+    try{
+      if(low.endsWith('.zip')){const inner=await JSZip.loadAsync(await f.async('arraybuffer'));await recurseZip(inner,log);zip.file(full,await inner.generateAsync({type:'uint8array'}));log.push('↳ 嵌套ZIP: '+full);}
+      else if(low.endsWith('.docx')||low.endsWith('.pptx')){const b=await f.async('arraybuffer');const z2=await JSZip.loadAsync(b);const txt=await collectDocText(z2,low.endsWith('.docx')?'docx':'pptx');const det=detect(txt);const map=await replMapFor(det);if(map.size){const tg=low.endsWith('.docx')?/word\/.*\.xml$/: /ppt\/.*\.xml$/;for(const n of Object.keys(z2.files)){if(z2.files[n].dir)continue;if(tg.test(n)){let c=await z2.files[n].async('string');c=xmlTextReplace(c,map);z2.file(n,c);}}zip.file(full,await z2.generateAsync({type:'uint8array',compression:'DEFLATE'}));log.push('✓ '+full+'（'+map.size+' 项）');}else log.push('· '+full+'（无敏感项）');}
+      else if(low.endsWith('.xlsx')||low.endsWith('.xls')||low.endsWith('.csv')){const b=await f.async('arraybuffer');const wb=XLSX.read(b,{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];const rows=XLSX.utils.sheet_to_json(ws,{header:1});const txt=rows.map(r=>r.join(' ')).join('\n');const det=detect(txt);const map=await replMapFor(det);if(map.size){const nr=rows.map(r=>r.map(c=>{let s=String(c==null?'':c);map.forEach((to,from)=>{s=s.split(from).join(to);});return s;}));const nws=XLSX.utils.aoa_to_sheet(nr);const nwb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(nwb,nws,'Sheet1');zip.file(full,new Uint8Array(XLSX.write(nwb,{bookType:low.endsWith('.csv')?'csv':'xlsx',type:'array'})));log.push('✓ '+full+'（'+map.size+' 项）');}else log.push('· '+full);}
+      else if(low.endsWith('.pdf')){if(window._pdfjs){const b=await f.async('arraybuffer');const out=await redactPdf(new Uint8Array(b),log);if(out)zip.file(full,out);}else log.push('⚠ '+full+'（PDF 引擎未加载，跳过）');}
+      else if(['.png','.jpg','.jpeg'].some(x=>low.endsWith(x))){if(window._ocr){/* 图片在ZIP内遮挡：需像素处理，暂跳过 */log.push('⚠ '+full+'（ZIP 内图片脱敏需在解压后单独处理）');}else log.push('⚠ '+full+'（OCR 未加载，跳过）');}
+    }catch(e){log.push('✗ '+full+' 处理异常：'+e.message);}
+  }
+}
+
+/* ===================== PDF / 图片 脱敏 ===================== */
+function setStatus(s){['m2','g2','docMsg'].forEach(id=>{const e=$(id);if(e)e.innerHTML=s;});}
+/* 本地优先加载引擎，缺失时回退 CDN（用于未下载本地引擎的环境） */
+async function ensurePdf(){
+  if(window._pdfjs)return true;
+  const load=src=>new Promise(res=>{const s=document.createElement('script');s.src=src;s.onload=()=>{try{const p=window['pdfjsLib'];p.GlobalWorkerOptions.workerSrc=(src.indexOf('cdnjs')>=0?'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js':'libs/pdfjs/pdf.worker.min.js');window._pdfjs=p;res(true);}catch(e){res(false);}};s.onerror=()=>res(false);document.head.appendChild(s);});
+  if(await load('libs/pdfjs/pdf.min.js'))return true;
+  return await load('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+}
+let OCR_CFG={};
+async function ensureOcr(){
+  if(window._ocr)return true;
+  const opts=[
+    {main:'libs/tesseract/tesseract.min.js',worker:'libs/tesseract/worker.min.js',core:'libs/tesseract/tesseract-core.wasm.js',lang:'libs/tesseract/tessdata'},
+    {main:'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',worker:'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js',core:'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1/tesseract-core.wasm.js',lang:'https://tessdata.projectnaptha.com/4.0.0'}
+  ];
+  for(const o of opts){const ok=await new Promise(res=>{const s=document.createElement('script');s.src=o.main;s.onload=()=>{try{window._ocr=window.Tesseract;OCR_CFG=o;res(true);}catch(e){res(false);}};s.onerror=()=>res(false);document.head.appendChild(s);});if(ok)return true;}
+  return false;
+}
+/* 通用：自动令牌化全部敏感项（用于转 Word 可逆模式） */
+async function autoReplMap(det){const map=new Map();for(const type of Object.keys(det)){const {cls,values}=det[type];for(const v of values){const t=getToken('type:'+cls.type,v,'token',cls.type);if(t!==v)map.set(v,t);}}return map;}
+function buildReFromMap(map){const froms=[...map.keys()].sort((a,b)=>b.length-a.length).map(escapeReg);return froms.length?new RegExp(froms.join('|'),'g'):null;}
+function applyMap(text,map){if(!map||!map.size)return text;const re=buildReFromMap(map);return re?text.replace(re,m=>map.get(m)):text;}
+/* 构造最小 docx（纯文本 + 令牌，可逆） */
+async function makeDocxFromText(paras){
+  const zip=new JSZip();
+  zip.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>');
+  zip.file('_rels/.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
+  let body='';for(const p of (paras||[''])){body+='<w:p><w:r><w:t xml:space="preserve">'+esc(p==null?'':p)+'</w:t></w:r></w:p>';}
+  zip.file('word/document.xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>'+body+'</w:body></w:document>');
+  zip.file('word/_rels/document.xml.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>');
+  return await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',compression:'DEFLATE'});
+}
+/* PDF → 提取文本(含表单字段) → 令牌化 → Word（可逆） */
+async function pdfToMaskedDocx(bytes){
+  const pdfjs=window._pdfjs;const doc=await pdfjs.getDocument({data:bytes}).promise;let full='';
+  for(let p=1;p<=doc.numPages;p++){const page=await doc.getPage(p);const tc=await page.getTextContent();let line='';for(const it of tc.items){if(!it.str)continue;line+=it.str;if(it.hasEOL)line+='\n';}full+=line+'\n';}
+  try{if(doc.getFieldObjects){const fo=doc.getFieldObjects();for(const k in fo){for(const f of (fo[k]||[])){if(f&&f.value!=null)full+='\n'+String(f.value);}}}}catch(e){}
+  const det=detect(full);const map=await autoReplMap(det);const out=applyMap(full,map);
+  const n=Object.values(det).reduce((a,b)=>a+b.values.length,0);
+  setStatus('<span class="msg ok">PDF 文本'+(n?'（'+n+' 处敏感项）':'')+' 已转为 Word 并令牌化脱敏，可凭主字典还原。</span>');
+  return await makeDocxFromText(out.split('\n'));
+}
+/* 图片 → OCR → 令牌化 → Word（可逆） */
+async function imgToMaskedDocx(f){
+  const url=URL.createObjectURL(f);const img=new Image();img.src=url;await new Promise(r=>img.onload=r);
+  const data=await (async()=>{try{const w=await window._ocr.createWorker('chi_sim+eng',1,{workerPath:OCR_CFG.worker,corePath:OCR_CFG.core,langPath:OCR_CFG.lang});const {data}=await w.recognize(img);await w.terminate();return data;}catch(e){return {text:''};}})();
+  const text=data.text||'';const det=detect(text);const map=await autoReplMap(det);const out=applyMap(text,map);
+  const n=Object.values(det).reduce((a,b)=>a+b.values.length,0);
+  setStatus('<span class="msg ok">图片 OCR 文本'+(n?'（'+n+' 处敏感项）':'')+' 已转为 Word 并令牌化脱敏，可凭主字典还原。</span>');
+  const paras=out.split('\n').filter(s=>s.trim()!=='');return await makeDocxFromText(paras.length?paras:['（未能识别到有效文本）']);
+}
+/* 生成入口（按模式分流） */
+async function genPdf(f){const mode=$('pdfMode').value;const buf=await f.arrayBuffer();
+  if(mode==='doc'){try{const out=await pdfToMaskedDocx(new Uint8Array(buf));if(out)showDocOut('Word(由PDF转)',out,(DOC.name||'data').replace(/\.[^.]+$/,'')+'_脱敏.docx');}catch(e){setStatus('<span class="msg err">PDF 转 Word 失败：'+e.message+'</span>');}}
+  else{const out=await redactPdf(new Uint8Array(buf),[]);if(out){const blob=new Blob([out],{type:'application/pdf'});showDocOut('PDF',blob,(DOC.name||'data').replace(/\.[^.]+$/,'')+'_脱敏.pdf');}}}
+async function genImg(f){const mode=$('pdfMode').value;
+  if(mode==='doc'){try{const out=await imgToMaskedDocx(f);if(out)showDocOut('Word(由图片转)',out,(DOC.name||'img').replace(/\.[^.]+$/,'')+'_脱敏.docx');}catch(e){setStatus('<span class="msg err">图片转 Word 失败：'+e.message+'</span>');}}
+  else{const url=URL.createObjectURL(f);const img=new Image();img.src=url;await new Promise(r=>img.onload=r);const cv=document.createElement('canvas');cv.width=img.width;cv.height=img.height;const ctx=cv.getContext('2d');ctx.drawImage(img,0,0);const txt=await (async()=>{try{const w=await window._ocr.createWorker('chi_sim+eng',1,{workerPath:OCR_CFG.worker,corePath:OCR_CFG.core,langPath:OCR_CFG.lang});const {data}=await w.recognize(img);await w.terminate();return data;}catch(e){return {words:[]};}})();
+    for(const wd of (txt.words||[])){const det=detect(wd.text);let found=false;for(const k in det)if(det[k].values.length)found=true;if(found&&wd.bbox){ctx.fillStyle='#000';ctx.fillRect(wd.bbox.x0,wd.bbox.y0,wd.bbox.x1-wd.bbox.x0,wd.bbox.y1-wd.bbox.y0);}}
+    cv.toBlob(b=>{showDocOut('图片',b,(DOC.name||'img').replace(/\.[^.]+$/,'')+'_脱敏.png');},'image/png');}}
+/* 遮挡式脱敏（PDF，不可逆，保留原格式） */
+async function redactPdf(bytes,log){
+  const pdfjs=window._pdfjs;if(!pdfjs)return null;
+  const doc=await pdfjs.getDocument({data:bytes}).promise;const rects=[];
+  for(let p=1;p<=doc.numPages;p++){const page=await doc.getPage(p);const tc=await page.getTextContent();const vp=page.getViewport({scale:1});const boxes=[];
+    for(const it of tc.items){if(!it.str)continue;const det=detect(it.str);const found=new Set();for(const k in det)det[k].values.forEach(v=>found.add(v));if(!found.size)continue;
+      const tx=it.transform;const fontH=Math.hypot(tx[1],tx[3])||10;const w=(it.width||(it.str.length*fontH*0.6));const x=tx[4];const y=vp.height-tx[5]-fontH;boxes.push({x,y,w,h:fontH*1.1});
+    }
+    if(boxes.length)rects.push({page:p,boxes});
+  }
+  if(!rects.length){if(log)log.push('· PDF 未发现敏感文本');return bytes;}
+  const {PDFDocument,rgb}=window.PDFLib;const pdf=await PDFDocument.load(bytes);
+  for(const r of rects){const pg=pdf.getPage(r.page-1);for(const b of r.boxes){pg.drawRectangle({x:b.x,y:b.y,width:b.w,height:b.h,color:rgb(0,0,0),opacity:1});}}
+  const out=await pdf.save();return new Uint8Array(out);
+}
+
+/* ===================== ③ 还原 ===================== */
+let RDATA=null,RDICT=null,ROUT=null;
+$('rf').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const ext=f.name.toLowerCase().split('.').pop();
+  if(ext==='csv'){f.text().then(t=>{RDATA={isSheet:true,rows:parseCsv(t),name:f.name};});}
+  else if(ext==='xlsx'||ext==='xls'){f.arrayBuffer().then(b=>{const wb=XLSX.read(b,{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];RDATA={isSheet:true,rows:XLSX.utils.sheet_to_json(ws,{header:1}),name:f.name};});}
+  else if(ext==='docx'||ext==='pptx'){f.arrayBuffer().then(async b=>{RDATA={isDoc:true,buf:b,name:f.name,ext};});}
+});
+$('rd').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{RDICT=JSON.parse(t);}catch(err){$('rmsg').innerHTML='<span class="msg err">字典解析失败：'+err.message+'</span>';}});});
+async function restoreFile(){
+  if(!RDATA||!RDICT){$('rmsg').innerHTML='<span class="msg err">'+T('请先上传脱敏文件与主字典。','Upload the masked file and master dictionary first.')+'</span>';return;}
+  const pwd=$('rpwd').value;const cols=RDICT.columns||{};const tok=RDICT.tok||{};
+  const needPwd=Object.values(cols).some(c=>c.method==='encrypt'||c.method==='round_rev')||Object.values(tok).some(c=>c.method==='encrypt');
+  if(needPwd&&!pwd){$('rmsg').innerHTML='<span class="msg err">'+T('含加密列/令牌，请输入口令。','Encrypted columns/tokens present - enter passphrase.')+'</span>';return;}
+  let saltBytes=null;const encC=Object.values(cols).find(c=>c.salt)||Object.values(tok).find(c=>c.salt);if(encC&&encC.salt)saltBytes=unb64(encC.salt);
+  // 构建 token->原始 映射（含解密）
+  const tmap={};for(const[t,info]of Object.entries(tok)){if(info.method==='encrypt'){try{tmap[t]=await decryptVal(saltBytes,pwd,t);}catch(e){tmap[t]='[解密失败]';}}else if(info.method==='shuffle'){tmap[t]=info.original;}else{tmap[t]=info.original;}}
+  const froms=Object.keys(tmap).sort((a,b)=>b.length-a.length).map(escapeReg);
+  const re=froms.length?new RegExp(froms.join('|'),'g'):null;
+  if(RDATA.isSheet){
+    const h=RDATA.rows[0];const revHidden=new Set();Object.entries(cols).forEach(([c,info])=>{if(info.method==='round_rev')revHidden.add(c+'_余项');});
+    const out=[h];
+    for(let r=1;r<RDATA.rows.length;r++){const row=RDATA.rows[r];const o=[];
+      for(let c=0;c<h.length;c++){const name=h[c];const v=row[c];if(revHidden.has(name))continue;const info=cols[name];
+        if(!info){o.push(re&&v!=null?String(v).replace(re,m=>tmap[m]||m):v);continue;}
+        if(info.method==='token'){o.push(re&&v!=null?String(v).replace(re,m=>tmap[m]||m):v);}
+        else if(info.method==='encrypt'){try{o.push(await decryptVal(saltBytes,pwd,v));}catch(e){o.push('[解密失败]');}}
+        else if(info.method==='shuffle'){const rev={};if(info.map)Object.entries(info.map).forEach(([k,val])=>rev[val]=k);o.push(rev[v]!==undefined?rev[v]:v);}
+        else if(info.method==='round_rev'){const rci=h.indexOf(name+'_余项');if(rci>=0&&row[rci]!=null&&row[rci]!==''){try{const rem=parseFloat(await decryptVal(saltBytes,pwd,row[rci]));o.push(parseFloat((parseFloat(v)+rem).toFixed(10)));}catch(e){o.push('[还原失败]');}}else o.push(v);}
+        else o.push(v);
+      }
+      out.push(o);
+    }
+    ROUT={blob:makeDeidBlob(out),name:RDATA.name.replace(/\.[^.]+$/,'')+'_含明文.xlsx'};
+    renderR(out);$('rmsg').innerHTML='<span class="msg ok">还原完成，共 '+out.length+' 行。</span>';
+  }else if(RDATA.isDoc){
+    const zip=await JSZip.loadAsync(RDATA.buf);const tg=RDATA.ext==='docx'?/word\/.*\.xml$/:/ppt\/.*\.xml$/;
+    for(const n of Object.keys(zip.files)){if(zip.files[n].dir)continue;if(tg.test(n)){let c=await zip.files[n].async('string');
+      if(re)c=c.replace(/<w:t([^>]*)>([\s\S]*?)<\/w:t>/g,(mm,a,t)=>'<w:t'+a+'>'+t.replace(re,m=>tmap[m]||m)+'</w:t>');
+      if(re)c=c.replace(/<a:t([^>]*)>([\s\S]*?)<\/a:t>/g,(mm,a,t)=>'<a:t'+a+'>'+t.replace(re,m=>tmap[m]||m)+'</a:t>');
+      zip.file(n,c);}}
+    const mime=RDATA.ext==='docx'?'application/vnd.openxmlformats-officedocument.wordprocessingml.document':'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    const blob=await zip.generateAsync({type:'blob',mimeType:mime,compression:'DEFLATE'});
+    ROUT={blob,name:RDATA.name.replace(/\.[^.]+$/,'')+'_含明文.'+RDATA.ext};
+    $('rprev').style.display='';$('rprev').innerHTML='<div class="msg ok">文档已还原。</div>';
+    $('rmsg').innerHTML='<span class="msg ok">文档还原完成（令牌化/加密项已恢复为明文）。</span>';
+  }
+  $('rdl').style.display='';
+}
+function renderR(out){let h='<thead><tr>'+out[0].map(x=>'<th>'+esc(x)+'</th>').join('')+'</tr></thead><tbody>';out.slice(1,16).forEach(r=>{h+='<tr>'+r.map(c=>'<td>'+esc(c==null?'':c)+'</td>').join('')+'</tr>';});$('rprev').style.display='';$('rprev').innerHTML=h+'</tbody>';}
+function parseCsv(t){const rows=[];let cur='',row=[],q=false;for(let i=0;i<t.length;i++){const ch=t[i];if(q){if(ch==='"'){if(t[i+1]==='"'){cur+='"';i++;}else q=false;}else cur+=ch;}else{if(ch==='"')q=true;else if(ch===','){row.push(cur);cur='';}else if(ch==='\n'){row.push(cur);rows.push(row);row=[];cur='';}else if(ch==='\r'){}else cur+=ch;}}if(cur!==''||row.length){row.push(cur);rows.push(row);}return rows;}
+function dlRestore(){if(ROUT)saveBlob(ROUT.blob,ROUT.name);}
+
+/* ===================== 批量文件夹拖拽处理 ===================== */
+let BATCH_FILES=[];
+function addBatchFiles(list){for(const f of list)BATCH_FILES.push(f);const n=BATCH_FILES.length;$('batchMsg').innerHTML='<span class="msg hint">'+T('已加入 {n} 个文件，点击「开始批量脱敏」。','Added {n} files. Click "Start batch masking".',{n:n})+'</span>';}
+$('batchFolder').addEventListener('change',e=>addBatchFiles(e.target.files));
+$('batchFiles').addEventListener('change',e=>addBatchFiles(e.target.files));
+(function(){const dz=$('dropzone');
+  ['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.style.borderColor='var(--brand)';}));
+  ['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.style.borderColor='var(--line)';}));
+  dz.addEventListener('click',()=>$('batchFiles').click());
+  dz.addEventListener('drop',e=>{const items=e.dataTransfer.items;if(items&&items[0]&&items[0].webkitGetAsEntry){const entries=[];for(const it of items){const en=it.webkitGetAsEntry&&it.webkitGetAsEntry();if(en)entries.push(en);}traverseEntries(entries).then(fls=>addBatchFiles(fls));}else if(e.dataTransfer.files){addBatchFiles(e.dataTransfer.files);}});
+})();
+async function traverseEntries(entries){const out=[];async function walk(en){if(en.isFile){await new Promise(r=>en.file(f=>{try{f._rel=en.fullPath.replace(/^\//,'');}catch(e){}out.push(f);r();}));}else if(en.isDirectory){const rd=en.createReader();let batch;do{batch=await new Promise(r=>rd.readEntries(r));for(const c of batch)await walk(c);}while(batch.length);}}for(const en of entries)await walk(en);return out;}
+async function replMapFor(det){const hasUI=Object.keys(det).every(t=>det[t].methodSel);return hasUI?await buildReplMap(det):await autoReplMap(det);}
+async function startBatch(){
+  if(!BATCH_FILES.length){$('batchMsg').innerHTML='<span class="msg err">'+T('请先加入文件或文件夹。','Add files or a folder first.')+'</span>';return;}
+  const files=BATCH_FILES.slice();BATCH_FILES=[];
+  const zip=new JSZip();const log=[];let done=0;const total=files.length;
+  $('batchProgRow').style.display='';$('batchLog').style.display='';$('batchMsg').innerHTML='<span class="msg hint">'+T('处理中…','Processing…')+'</span>';
+  for(const f of files){const rel=f._rel||f.webkitRelativePath||f.name;const ext=rel.toLowerCase().split('.').pop();let blob=null;
+    try{
+      if(['docx','pptx'].includes(ext)){const b=await f.arrayBuffer();const z2=await JSZip.loadAsync(b);const txt=await collectDocText(z2,ext);const det=detect(txt);const map=await autoReplMap(det);if(map.size){const tg=ext==='docx'?/word\/.*\.xml$/:/ppt\/.*\.xml$/;for(const n of Object.keys(z2.files)){if(z2.files[n].dir)continue;if(tg.test(n)){let c=await z2.files[n].async('string');c=xmlTextReplace(c,map);z2.file(n,c);}}blob=await z2.generateAsync({type:'blob',compression:'DEFLATE'});log.push('✓ '+rel+'（'+map.size+' 项）');}else log.push('· '+rel+'（无敏感项）');}
+      else if(['xlsx','xls','csv'].includes(ext)){const b=await f.arrayBuffer();const wb=XLSX.read(b,{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];const rows=XLSX.utils.sheet_to_json(ws,{header:1});const txt=rows.map(r=>r.join(' ')).join('\n');const det=detect(txt);const map=await autoReplMap(det);if(map.size){const re=buildReFromMap(map);const nr=rows.map(r=>r.map(c=>{let s=String(c==null?'':c);return s.replace(re,m=>map.get(m));}));const nws=XLSX.utils.aoa_to_sheet(nr);const nwb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(nwb,nws,'Sheet1');blob=new Blob([XLSX.write(nwb,{bookType:ext==='csv'?'csv':'xlsx',type:'array'})],{type:'application/octet-stream'});log.push('✓ '+rel+'（'+map.size+' 项）');}else log.push('· '+rel);}
+      else if(ext==='zip'){const b=await f.arrayBuffer();const z3=await JSZip.loadAsync(b);await recurseZip(z3,log);blob=await z3.generateAsync({type:'blob',compression:'DEFLATE'});}
+      else if(ext==='pdf'){await ensurePdf();if(window._pdfjs){blob=await pdfToMaskedDocx(new Uint8Array(await f.arrayBuffer()));log.push('✓ '+rel+'（PDF→Word 可逆）');}else log.push('⚠ '+rel+'（PDF 引擎缺失，跳过）');}
+      else if(['png','jpg','jpeg'].includes(ext)){await ensureOcr();if(window._ocr){blob=await imgToMaskedDocx(f);log.push('✓ '+rel+'（图片→Word 可逆）');}else log.push('⚠ '+rel+'（OCR 引擎缺失，跳过）');}
+      else log.push('· '+rel+'（不支持，跳过）');
+      if(blob){const outExt=(ext==='pdf'||ext==='png'||ext==='jpg'||ext==='jpeg')?'docx':ext;const outName=rel.replace(/\.[^.]+$/,'')+'_脱敏.'+outExt;zip.file(outName,blob);}
+    }catch(e){log.push('✗ '+rel+' 异常：'+e.message);}
+    done++;const pct=Math.round(done/total*100);$('batchFill').style.width=pct+'%';$('batchPct').textContent=pct+'%';$('batchLog').innerHTML=log.join('<br>');
+  }
+  if(Object.keys(zip.files).length){const b=await zip.generateAsync({type:'blob',compression:'DEFLATE'});saveBlob(b,'批量脱敏结果.zip');}
+  $('batchMsg').innerHTML='<span class="msg ok">'+T('批量处理完成：{n} 个文件，已生成 批量脱敏结果.zip（敏感项已累计进全局字典）。','Batch complete: {n} files processed. Generated 批量脱敏结果.zip (sensitive items added to master dictionary).',{n:total})+'</span>'+'<br><span class="msg warn">'+T('t2_dict_warn')+'</span>';
+}
+
+/* ===================== ④ 全局字典 ===================== */
+function refreshDictStat(){$('dictStat').innerHTML=T('会话累计：<b>{a}</b> 条映射，<b>{b}</b> 个表格列，<b>{c}</b> 个脱敏类别。','Session totals: <b>{a}</b> mappings, <b>{b}</b> table columns, <b>{c}</b> masking categories.',{a:Object.keys(G.tok).length,b:Object.keys(G.columns).length,c:G.catCount})+(G.salt?'<span class="msg warn">（含加密列，口令本地独掌）</span>':'');}
+function dlMaster(){saveBlob(makeDictBlob(buildMaster()),'主字典.json');}
+function impMaster(){const inp=$('impFile');inp.onchange=async e=>{const f=inp.files[0];if(!f)return;const d=JSON.parse(await f.text());if(d.tok)Object.assign(G.tok,d.tok);if(d.columns)Object.assign(G.columns,d.columns);if(d.salt)G.salt=d.salt;refreshDictStat();$('dictStat').innerHTML+='<div class="msg ok">'+T('已合并导入。','Merged and imported.')+'</div>';};inp.click();}
+function clearMaster(){G.byCat={};G.tok={};G.counters={};G.catIndex={};G.catCount=0;G.salt=null;G.columns={};refreshDictStat();}
+/* 字典口令保护（AES-GCM + PBKDF2） */
+async function aesEncryptText(pwd,str){const salt=crypto.getRandomValues(new Uint8Array(16));const enc=new TextEncoder();const km=await crypto.subtle.importKey('raw',enc.encode(pwd),'PBKDF2',false,['deriveKey']);const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:150000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['encrypt']);const iv=crypto.getRandomValues(new Uint8Array(12));const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(str));return JSON.stringify({v:1,alg:'AES-GCM',kdf:'PBKDF2',iter:150000,salt:b64(salt),iv:b64(iv),ct:b64(ct)});}
+async function aesDecryptText(pwd,obj){const salt=unb64(obj.salt),iv=unb64(obj.iv),ct=unb64(obj.ct);const enc=new TextEncoder();const km=await crypto.subtle.importKey('raw',enc.encode(pwd),'PBKDF2',false,['deriveKey']);const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:obj.iter||150000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,ct);return new TextDecoder().decode(pt);}
+function dlMasterEnc(){const pwd=$('dictPwd').value;if(!pwd){alert(T('请先填写字典口令','Enter the dictionary passphrase'));return;}aesEncryptText(pwd,JSON.stringify(buildMaster())).then(s=>saveBlob(new Blob([s],{type:'application/json'}),'主字典_加密.json')).catch(e=>alert(T('加密失败：{e}','Encryption failed: {e}',{e:e.message})));}
+function impMasterEnc(){const pwd=$('dictPwd').value;if(!pwd){alert(T('请先填写字典口令','Enter the dictionary passphrase'));return;}const inp=$('impEncFile');inp.onchange=async e=>{const f=inp.files[0];if(!f)return;try{const obj=JSON.parse(await f.text());const s=await aesDecryptText(pwd,obj);const d=JSON.parse(s);if(d.tok)Object.assign(G.tok,d.tok);if(d.columns)Object.assign(G.columns,d.columns);if(d.salt)G.salt=d.salt;refreshDictStat();$('dictStat').innerHTML+='<div class="msg ok">'+T('已解密并合并导入加密主字典。','Decrypted and merged the encrypted master dictionary.')+'</div>';}catch(err){alert(T('解密失败（口令错误或文件损坏）：{e}','Decryption failed (wrong passphrase or corrupted file): {e}',{e:err.message}));}};inp.click();}
+/* ===================== 主题切换（浅色 / 深色 / 跟随系统） ===================== */
+function updateThemeBtns(t){const map={light:'thLight',dark:'thDark',system:'thSys'};['light','dark','system'].forEach(k=>{const el=document.getElementById(map[k]);if(el)el.classList.toggle('active',k===t);});}
+function postTheme(t){t=t||document.documentElement.getAttribute('data-theme');['helpFrame','techFrame'].forEach(id=>{const f=$(id);if(f&&f.getAttribute('data-loaded')){try{f.contentWindow.postMessage({theme:t},'*');}catch(e){}}});}
+function setTheme(t){document.documentElement.setAttribute('data-theme',t);try{localStorage.setItem('dmtheme',t);}catch(e){}updateThemeBtns(t);postTheme(t);}
+(function(){let t='system';try{t=localStorage.getItem('dmtheme')||'system';}catch(e){}document.documentElement.setAttribute('data-theme',t);updateThemeBtns(t);postTheme();})();
+(function(){LANG=detectLang();updateLangBtns();applyStaticI18n();refreshDynamicI18n();})();
+window.addEventListener('DOMContentLoaded',refreshDictStat);
+</script>
+<footer>
+  <div data-i18n="ft_auth">原创作者：<b>SuperLaos</b> ｜ 公众号：<b>技术宅SuperLaos</b></div>
+  <div class="lic" data-i18n="ft_lic"><b>许可协议：</b>本工具按 <b>MIT 许可证</b> 发布，可自由使用、修改与再分发（请保留原创作者信息）。<br>
+  本工具仅用于信息整理与学习，不保证数据完全安全，请注意备份源文件。<br>
+  结构化文本（表格/Word/PPT/ZIP 内文档）支持脱敏+还原。<br>
+  PDF / 图片支持「遮挡式（不可逆）」与「转为 Word 脱敏（可逆）」两种模式。<br>
+  <b style="color:var(--warn)">主字典含全部明文映射，务必本地独掌、严禁随脱敏文件外发。</b></div>
+</footer>
+</body>
+</html>
